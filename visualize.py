@@ -67,6 +67,23 @@ def open(img, **kwargs):
                     
 
 
+def gallery(array, ncols=3):
+    nindex, height, width, intensity = array.shape
+    nrows = nindex//ncols
+    assert nindex == nrows*ncols
+    # want result.shape = (height*nrows, width*ncols, intensity)
+    result = (array.reshape(nrows, ncols, height, width, intensity)
+              .swapaxes(1,2)
+              .reshape(height*nrows, width*ncols, intensity))
+    return result
+
+
+
+#import torch 
+import torchvision 
+from torchvision.io import read_image 
+from torchvision.utils import make_grid 
+
 
 #'00073536\\2023-09-29-10-54-48-e11\\img\\'
 def grid(logdir):
@@ -78,31 +95,53 @@ def grid(logdir):
                 pathy = os.path.join(logdir,dir)
                 filesInDir = os.listdir(pathy)
                 img = [Image.open(os.path.join(pathy,i)) for i in filesInDir]
-                imgArr = [np.asarray(a)  for a in img]
-                imgs.append(imgArr)
+                #imgArr = [np.asarray(a)  for a in img]
+                imgs.extend(img)
 
-        elif all(os.path.isfile(i) for i in items):
+        elif (os.path.isfile(os.path.join(logdir,i)) for i in items):
+            a = []
             for i in items:
                 img = Image.open(os.path.join(logdir,i))
-                imgArr = np.asarray(img)
-                imgs.append(imgArr)
+                # #imgArr = np.asarray(img)
+                imgs.append(img)
 
-    print(imgs[0].shape)
+        s= []
+        for a in imgs:
+            s.append(np.asarray(a.convert('RGB')))
+        s = np.array(s)
+        nindex, height, width, intensity = s.shape
+        result = gallery(s)
+        print(s.shape)
+        plt.imshow(result)
+        plt.show()
 
-    rows=len(imgs)
-    cols = len(imgs[0])
+                
+            #     # read images from computer 
+            #     a.append(read_image(os.path.join(logdir,i)))
+                
+            #     # make grid from the input images 
+            #     # this grid contain 4 columns and 1 row 
+            # Grid = make_grid(a,scale_each=True,nrow=2) 
+                
+            #     # display result 
+            # img = torchvision.transforms.ToPILImage()(Grid) 
+            # img.show() 
 
 
-    fig = plt.figure(figsize=(15,15))
-    grid = ImageGrid(fig, 111,  # similar to subplot(111)
-                    nrows_ncols=(rows, cols),  # creates 2x2 grid of axes
-                    )
+        # rows = len(imgs)
+        # cols = len(imgs[0])
 
-    for ax, im in zip(grid, imgs):
-        # Iterating over the grid returns the Axes.
-        ax.imshow(im)
 
-    plt.show()
+        # fig = plt.figure(figsize=(15,15))
+        # grid = ImageGrid(fig, 111,  # similar to subplot(111)
+        #                 nrows_ncols=(rows, cols),  # creates 2x2 grid of axes
+        #                 )
+
+        # for ax, im in zip(grid, imgs):
+        #     # Iterating over the grid returns the Axes.
+        #     ax.imshow(im)
+
+        # plt.show()
 
 
 
