@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 from PIL import Image
 from itertools import product
-import os, sys, math
+import os, sys, math, typing
 
 
 from utils import processDirOrFile
@@ -15,29 +15,50 @@ def getParser(**parser_kwargs):
     parser = argparse.ArgumentParser(**parser_kwargs, formatter_class=argparse.RawTextHelpFormatter)
     subparsers = parser.add_subparsers(dest="command")
     mergeParser = subparsers.add_parser("compare", help="check if 2 images are the same")
-    mergeParser.add_argument('rgb_name', type=str, help='Name of image or directory to merge with.')    
-    mergeParser.add_argument('a_name', type=str, help='Name of image or directory to merge with.')    
-    mergeParser.add_argument('-o','--out_dir', type=str, help='Output Directory')
+    mergeParser.add_argument('image1', type=str, help='Name of image or directory to merge with.')    
+    mergeParser.add_argument('image2', type=str, help='Name of image or directory to merge with.')  
+
+    mergeParser = subparsers.add_parser("size-check", help="check if 2 images are the same")
+    mergeParser.add_argument('image', type=str, help='Name of image or directory to merge with.')    
+    mergeParser.add_argument('size', type=str, help='Name of image or directory to merge with.')    
     #return mergeParser, seperateParser
     return parser
 
 
-def sizeCheck(imageDir, expectedSize):
-    if(os.path.isdir(imageDir)):
-        for filename in os.listdir(imageDir):
-            f = os.path.join(imageDir, filename)
-            # check if file
-            if os.path.isfile(f):
-                if(f.split(".")[-1] == 'png'):
-                    img = Image.open(f)
-                    if(img.size[0] < 1024 or img.size[1] < 1024  ):
-                        print(img.size, img)
-                elif(f.split(".")[-1] == 'tif' or f.split(".")[-1] == 'tiff'):
-                    with rasterio.open(f) as img:
-                        bandNbr = [band for band in range(1,img.count + 1)]
-                        data = img.read(bandNbr)
-                        print(data.shape == expectedSize)
+# ONLY CHECKS IF VALUES ARE LESS THAN EXPECTED VALUE
+def sizeCheck(image,  **kwargs):
+    size = kwargs.get('size')
+    img = Image.open(image)
+    if type(size) is tuple:
+        if(img.size[0] < size[0] or img.size[1] < size[1]):
+            print("Image " + image + " is less then expected size")
+            print(img.size)
+    elif type(size) is int:
+        if(img.size[0] < size or img.size[1] < size):
+            print("Image " + image + " is less then expected size")
+            print(img.size)
+
+    # with rasterio.open(f) as img:
+    #     bandNbr = [band for band in range(1,img.count + 1)]
+    #     data = img.read(bandNbr)
+    #     print(data.shape == expectedSize)
              
+
+
+def compare(img1, img2, **kwargs):
+    img1 = Image.open(img1)
+    img2 = Image.open(img2)
+    img1 = np.array(img1)
+    img2 = np.array(img2)
+    if(img1.shape != img2.shape):
+        print("The image shapws don't match:" + str(img1.shape) + "and" + str(img2.shape))
+        return False      
+    elif((img1 == img2).all()):
+        print("The images are EQUAL.")
+        return True
+    else:
+        print("The images are NOT equal.")
+        return False
 
     
 if __name__ == '__main__':
@@ -45,24 +66,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
     if args.command == 'compare':
-        processDirOrFile(mergeRGBA, rgb=args.rgb_name, a=args.a_name)
+        processDirOrFile(compare, target=args.image1, destination=args.image2)
+    if args.command == 'size-check':
+        processDirOrFile(sizeCheck, target=args.image, size=args.size)
 
         
-    if(len(args.compare) == 2):
-        if(args.compare[0].split(".")[-1] != 'png' or args.compare[1].split(".")[-1] != 'png'):
-            print("Only PNG is supported!")
-        else:
-            img1 = Image.open(args.compare[0])
-            img2 = Image.open(args.compare[1])
-            img1 = np.array(img1)
-            img2 = np.array(img2)
-            if(img1.shape != img2.shape):
-                print("The image sizes don't match:" + str(img1.shape) + "and" + str(img2.shape))
-            else:
-                print(img2.shape)
-                if((img1 == img2).all()):
-                    print("The images are EQUAL.")
-                else:
-                    print("The images are NOT equal.")
-    else:
-        print("Must specify only 2 files!")

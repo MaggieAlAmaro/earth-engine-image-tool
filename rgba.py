@@ -1,15 +1,11 @@
 import time
-import rasterio
 import matplotlib.pyplot as plt
-from rasterio.plot import show
-from rasterio.merge import merge
 import numpy as np
 import argparse
 from PIL import Image
-from itertools import product
-import os, sys, math
+import os
 
-from utils import processDirOrFile
+from utils import processDirOrFile, newFilename, makeOutputFolder
 
 
 def getParser(**parser_kwargs):
@@ -27,33 +23,35 @@ def getParser(**parser_kwargs):
     return parser
 
 
-def separateAandRGB(image, outName=None):
-    if(outName == None):
-        f_type = image.split(".")[-1]
-        newFileName = image.split(os.sep)[-1] 
-        newRGBFileName = newFileName.rstrip(("."+f_type)) + "RGB.png"
-        newAFileName = newFileName.rstrip(("."+f_type)) + "A.png"
+def separateAandRGB(image, **kwargs):
+    outFn = kwargs.get('out', None)
+    aDir = kwargs.get('a', a)
+    rgbDir = kwargs.get('rgb', rgb)
+    if(outFn == None):
+        newRGBFileName = newFilename(image, suffix="RGB.png")
+        newRGBFileName = newFilename(image, suffix="A.png")
     else:
-        newRGBFileName = outName + "RGB.png"
-        newAFileName = outName + "A.png"
+        newRGBFileName = outFn + "RGB.png"
+        newAFileName = outFn + "A.png"
 
     img = Image.open(image)
     r, g, b, a = img.split()
     a = a.convert('L')
     rgb = Image.merge('RGB', (r, g, b))
     
-    outputDir = os.path.join('output', "seperate-"+time.strftime("%Y-%m-%d-%H-%M"))
-    os.mkdir(outputDir)
-    rgbDir = os.path.join(outputDir,'rgb')
-    aDir = os.path.join(outputDir,'a')
-    os.mkdir(rgbDir)
-    os.mkdir(aDir)
+    
 
     rgb.save(os.path.join(rgbDir,newRGBFileName))
     a.save(os.path.join(aDir,newAFileName))
 
 
-def mergeRGBA(fileRGB, fileA, outFilename):
+def mergeRGBA(fileRGB, fileA, **kwargs):
+    outFn = kwargs.get('out', None)
+    if (outFn == None):
+        fn = newFilename(fileRGB, suffix="RGBA.png")
+    else:
+        fn = outFn
+
     #TODO: mcheck if filename part is same, if so get new filenameFrom file
 
     rgb = Image.open(fileRGB)
@@ -61,7 +59,7 @@ def mergeRGBA(fileRGB, fileA, outFilename):
     a = a.convert('L')
     r, g, b = rgb.split()
     rgba = Image.merge('RGBA', (r, g, b, a))
-    rgba.save(outFilename)
+    rgba.save(fn)
 
     
 if __name__ == '__main__':
@@ -71,4 +69,9 @@ if __name__ == '__main__':
     if args.command == 'merge':
         processDirOrFile(mergeRGBA, target=args.rgb_name, destination=args.a_name)
     if args.command == 'seperate':
+        outputDir = makeOutputFolder('separate')
+        rgbDir = os.path.join(outputDir,'rgb')
+        aDir = os.path.join(outputDir,'a')
+        os.mkdir(rgbDir)
+        os.mkdir(aDir)
         processDirOrFile(separateAandRGB, target=args.rgba_name)
