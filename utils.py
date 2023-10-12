@@ -48,6 +48,7 @@ def newFilename(oldname, prefix=None, suffix=".png", outdir='.'):
     return fn
 
 
+
 def makeOutputFolder(folderFunctionName):
     return makeLogFolder('output',folderFunctionName)
 

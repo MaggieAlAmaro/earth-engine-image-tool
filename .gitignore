@@ -2,4 +2,6 @@
 *.tif
 
 output/*
+!output/Example
 data/*
+!data/*.txt

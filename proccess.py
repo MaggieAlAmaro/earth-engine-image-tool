@@ -225,6 +225,50 @@ def tile(image, tileSize):
         box = (j, i, j+tileSize, i+tileSize)
         img.crop(box).save(fn)
 
+    #OTHER CROPSSSS
+    # for i, filename in enumerate(os.listdir(t)):
+    #     if (filename.endswith(".png")):
+    #         im = Image.open(t+os.sep+filename)
+    #         left = 0
+    #         top = 0
+    #         right = 256
+    #         bottom = 256
+
+
+    #         im1 = im.crop((left, top, right, bottom))
+    #         newsize = (256, 256)
+    #         im1 = im1.save(newDir+os.sep+filename.split(".")[0]+"_1.png")
+
+
+    #         left = 256
+    #         top = 0
+    #         right = 512
+    #         bottom = 256
+
+    #         im2 = im.crop((left, top, right, bottom))
+    #         newsize = (256, 256)
+    #         im2 = im2.save(newDir+os.sep+filename.split(".")[0]+"_2.png")
+
+
+
+    #         left = 0
+    #         top = 256
+    #         right = 256
+    #         bottom = 512
+
+    #         im3 = im.crop((left, top, right, bottom))
+    #         newsize = (256, 256)
+    #         im3 = im3.save(newDir+os.sep+filename.split(".")[0]+"_3.png")
+
+
+    #         left = 256
+    #         top = 256
+    #         right = 512
+    #         bottom = 512
+
+    #         im4 = im.crop((left, top, right, bottom))
+    #         newsize = (256, 256)
+    #         im4 = im4.save(newDir+os.sep+filename.split(".")[0]+"_4.png")
 
 
 
