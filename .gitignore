@@ -1,7 +1,9 @@
 *.png
 *.tif
+*.pickle
 
 output/*
 !output/Example
 data/*
 !data/*.txt
+__pycache__

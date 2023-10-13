@@ -36,6 +36,7 @@ def createFilenameTxt(dataDir,shuffleTxt=True):
     fn = filenameTxt(dataDir)
     if shuffleTxt:
         shuffleFile(fn)
+    return fn
 
 def checkIfDirValid(dataDir):
     for f in os.listdir(dataDir):
@@ -85,6 +86,6 @@ if __name__ == '__main__':
     parser = getParser()
     args = parser.parse_args()
 
-    #createFilenameTxt(args.dir)
-    splitIntoTrainValidationTxt(args.dir, args.ratio)
+    fn = createFilenameTxt(args.dir)
+    splitIntoTrainValidationTxt(fn, args.ratio)
 

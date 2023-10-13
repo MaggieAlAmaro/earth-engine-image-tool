@@ -6,7 +6,7 @@ import os, sys, math
 import pickle, typing, time
 
 from utils import processDirOrFile, newFilename
-
+from visualize import grid
 
 def get_parser(**parser_kwargs):
     def str2bool(v):
@@ -76,7 +76,7 @@ def get_parser(**parser_kwargs):
 
     
 
-x = np.ones(shape=65535)
+x = np.zeros(shape=65535)
 
 def add(image, **kwargs):
     img = Image.open(image)
@@ -112,10 +112,12 @@ def add(image, **kwargs):
 #     return objs
 
 def plotError(x):
-    x = x[np.argmin(x)+32768:np.argmax(x)+32768]
-    index = np.arange(np.argmin(x),np.argmax(x),1)#-32768,32767,1)
-    print(x.shape, index.shape)
-    # x = x/(1024*11)
+    min = (np.where(x > 1)[0][0]) 
+    max = np.nonzero(x)[0][-1]
+    index = np.arange((min-32778),(max-32768),1)#np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)#
+    x = x[(min-10):(max)]
+    x = x/np.max(x)
+    print("Col Number: " + str(x.shape[0]))
     # print(x[12768])
     plt.bar(index,x,color="blue", width=1)
     plt.show()
@@ -125,15 +127,16 @@ def plotError(x):
 def open_pickle(filename):
     with open(filename, 'rb') as f:
         pixels: np.array = pickle.load(f)
-        print(pixels)
+        return pixels
 
-def save_pickle():
-    file = newFilename(os.path.join('data',str(time.strftime("%Y-%m-%d-%H-%M"))),suffix='.pickle') #os.path.join(logdir,filename)
-    mode = 'ab' if os.path.isfile(file) else 'wb'
-    with open(file, mode) as f:
+
+
+def save_pickle(data):
+    file = newFilename(os.path.join('output', str(time.strftime("%Y-%m-%d-%H-%M"))), suffix='.pickle') #os.path.join(logdir,filename)
+    #mode = 'ab' if os.path.isfile(file) else 'wb'
+    with open(file, 'wb') as f:
         print("Saving pickled error data...")
-        pickle.dump(x,f)
-        print("Data saved in " + file)
+        pickle.dump(data,f)
 
 # def valueDistribution():
 
@@ -142,14 +145,35 @@ def datasetInfo(x):
     print("Max Value:" + str(np.max(x)))
     print("Min Value At index:" + str(np.argmin(x)))
     print("Min Value:" + str(np.min(x)))
-    print("Min Value At index:" + str((np.where(x > 1)[0][0])))
+    print("First Non-zero Value at index: " + str((np.where(x > 1)[0][0])) + " in int16 index: " + str((np.where(x > 1)[0][0]) - 32768))
+    print("Last Non-zero Value at index: " + str(np.nonzero(x)[0][-1]) + " in int16 index: " + str(np.nonzero(x)[0][-1] - 32768))
+
+isStd = []
+
+def stdDev(image,**kwargs):
+    img = Image.open(image)
+    print("on image", image)
+    data = np.array(img)
+    stdD = np.std(data)
+    print("Standard Deviation is: " + str(stdD))
+    print()
+    global isStd
+    if(stdD > 1.6):
+        isStd.append(image)
 
 if __name__ == '__main__':
-    #open_error_pickle("wubelev.pickle")
-    
-    #x = np.ones(shape=65535)
-    processDirOrFile(add, target="data\\vv")
-    datasetInfo(x)
     # parser = get_parser()
     # args = parser.parse_args()
+
+
+
     
+    grid("data\\stdv",5)
+    processDirOrFile(stdDev, target="data\\stdv")
+    grid(isStd,5)
+    # x = open_pickle('2023-10-12-22-07.pickle')
+    # datasetInfo(x)
+
+
+    # save_pickle(x)
+    # plotError(x)

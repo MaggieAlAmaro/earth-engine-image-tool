@@ -1,8 +1,5 @@
 import time
-import rasterio
 import matplotlib.pyplot as plt
-from rasterio.plot import show
-from rasterio.merge import merge
 import numpy as np
 import argparse
 from PIL import Image
@@ -212,64 +209,18 @@ def convertPNG(oldImage, newFileName=None, destination=None):
             
 
 
-def tile(image, tileSize):
+def tile(image, **kwargs):
+    out = kwargs.get('outDir')
+    size = kwargs.get('size')
     img = Image.open(image)
     w, h = img.size
-    if(h%tileSize != 0 or w%tileSize != 0):
+    if h%size != 0 or w%size != 0:
         print("Tile size must be devisable by the size of the image.")
         return
-    for i, j in product(range(0, h, tileSize), range(0, w, tileSize)):
-        
-        #!!!!!!!!!!!outputDir = makeOutputFolder('separate')!!!
-        fn = newFilename(image,suffix=f"{i}_{j}.png",outdir="tiles")
-        box = (j, i, j+tileSize, i+tileSize)
+    for i, j in product(range(0, h, size), range(0, w, size)):
+        fn = newFilename(image, suffix=f"_{i}_{j}.png", outdir=out)
+        box = (j, i, j+size, i+size)
         img.crop(box).save(fn)
-
-    #OTHER CROPSSSS
-    # for i, filename in enumerate(os.listdir(t)):
-    #     if (filename.endswith(".png")):
-    #         im = Image.open(t+os.sep+filename)
-    #         left = 0
-    #         top = 0
-    #         right = 256
-    #         bottom = 256
-
-
-    #         im1 = im.crop((left, top, right, bottom))
-    #         newsize = (256, 256)
-    #         im1 = im1.save(newDir+os.sep+filename.split(".")[0]+"_1.png")
-
-
-    #         left = 256
-    #         top = 0
-    #         right = 512
-    #         bottom = 256
-
-    #         im2 = im.crop((left, top, right, bottom))
-    #         newsize = (256, 256)
-    #         im2 = im2.save(newDir+os.sep+filename.split(".")[0]+"_2.png")
-
-
-
-    #         left = 0
-    #         top = 256
-    #         right = 256
-    #         bottom = 512
-
-    #         im3 = im.crop((left, top, right, bottom))
-    #         newsize = (256, 256)
-    #         im3 = im3.save(newDir+os.sep+filename.split(".")[0]+"_3.png")
-
-
-    #         left = 256
-    #         top = 256
-    #         right = 512
-    #         bottom = 512
-
-    #         im4 = im.crop((left, top, right, bottom))
-    #         newsize = (256, 256)
-    #         im4 = im4.save(newDir+os.sep+filename.split(".")[0]+"_4.png")
-
 
 
 if __name__ == '__main__':
@@ -287,6 +238,6 @@ if __name__ == '__main__':
         processDirOrFile(removeBlackLines, target=args.image_filename, size=args.size)
     elif args.command == 'tile':
         outDir = makeOutputFolder('tile')
-        processDirOrFile(tile, target=args.image_filename, size=args.size)
+        processDirOrFile(tile, target=args.image_filename, size=args.size, outDir=outDir)
 
         

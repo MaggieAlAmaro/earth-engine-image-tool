@@ -52,10 +52,14 @@ def makeImageGrid(array, ncols=1):
 
 
 
-def grid(logdir):
+def grid(logdir, rows):
     imgData = []
-    print(logdir)
-    if(os.path.isdir(logdir)):
+    if type(logdir) is list:
+        for img in logdir:
+            image = Image.open(img)
+            imgData.append(np.array(image.convert('RGB')))
+
+    elif(os.path.isdir(logdir)):
         dirOrFiles = os.listdir(logdir)
         #dirs inside logdir
         if all(os.path.isdir(os.path.join(logdir,content)) for content in dirOrFiles):
@@ -63,7 +67,7 @@ def grid(logdir):
                 dirPath = os.path.join(logdir,dir)
                 imgInDir = os.listdir(dirPath)
                 dirImgs = [Image.open(os.path.join(dirPath,img)) for img in imgInDir]
-                dirImgsArr = [np.array(img.convert('RGB')) for img in dirImgs]
+                dirImgsArr = [np.array(img.convert('RGB')) for img in dirImgs] #!!!!
                 imgData.extend(dirImgsArr)
 
         #logdir
@@ -72,10 +76,10 @@ def grid(logdir):
                 img = Image.open(os.path.join(logdir,img))
                 imgData.append(np.array(img.convert('RGB')))
 
-        imgData = np.array(imgData)
-        grid = makeImageGrid(imgData,2)
-        plt.imshow(grid)
-        plt.show()
+    imgData = np.array(imgData)
+    grid = makeImageGrid(imgData,rows)
+    plt.imshow(grid)
+    plt.show()
 
       
 
@@ -87,4 +91,4 @@ if __name__ == '__main__':
     if args.command == 'open':
         open(args.name, plot=args.plot)        
     elif args.command == 'grid':
-        grid(args.imgdir)
+        grid(args.imgdir,2)
