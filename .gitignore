@@ -1,4 +1,6 @@
 *.png
+!stdvTest.png
+!stdvTest2.png
 *.tif
 *.pickle
 
