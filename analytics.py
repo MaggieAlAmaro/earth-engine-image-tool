@@ -8,92 +8,46 @@ import pickle, typing, time
 from utils import processDirOrFile, newFilename
 from visualize import grid
 
-def get_parser(**parser_kwargs):
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ("yes", "true", "t", "y", "1"):
-            return True
-        elif v.lower() in ("no", "false", "f", "n", "0"):
-            return False
-        else:
-            raise argparse.ArgumentTypeError("Boolean value expected.")
 
-    parser = argparse.ArgumentParser(**parser_kwargs)
-    parser.add_argument(
-        "fileOrDir",
-        type=str,
-        nargs="?",
-        action='store_const',
-        help="Name of image or directory to work with.",
-    )
-    parser.add_argument(
-        "-n",
-        "--name",
-        type=str,
-        const=True,
-        nargs="?",
-        help="name of raster image",
-    )
-    parser.add_argument(
-        "-m",
-        "--merge",
-        nargs='+',
-        type=str,
-        help="merge 2 tif images",
-    )
-    parser.add_argument(
-        "-cm",
-        "--channelMerge",
-        nargs='+',
-        type=str,
-        help="merge an rgb and a 1 channel image",
-    )
-    parser.add_argument(
-        "-c",
-        "--compare",
-        nargs='+',
-        type=str,
-        help="compares 2 images and evaluates if they are the same",
-    )
-    parser.add_argument(
-        "-t",
-        "--toType",
-        nargs='+',
-        type=str,
-        help="convert img To Png",
-    )
-    parser.add_argument(
-        "-s",
-        "--separate",
-        const=True,
-        nargs="?",
-        type=str,
-        help="Separate RGB and A from RGBA image into 2 seperate images",
-    )
+plt.style.use('default')
+
+
+
+
+
+def getParser(**parser_kwargs):
+    parser = argparse.ArgumentParser(**parser_kwargs, formatter_class=argparse.RawTextHelpFormatter)
+    subparsers = parser.add_subparsers(dest="command")
+    openParser = subparsers.add_parser("open", help="Convert to png")   
+    openParser.add_argument('pickle_filename', type=str, help='Name of image')  
+    openParser.add_argument('-min', type=int, help='Name of image',default= -32768)#-10)  
+    
+    infoParser = subparsers.add_parser("info", help="Convert to png")   
+    infoParser.add_argument('image_filename', type=str, help='Name of image')  
+
+    distParser = subparsers.add_parser("hist", help="Convert to png")   
+    distParser.add_argument('image_filename', type=str, help='Name of image')  
+    distParser.add_argument('-min', type=int, help='Name of image',default= -32768)#-10)  
+    distParser.add_argument('-max', type=int, help='Name of image',default=6500)  
     return parser
-
-
     
 
-x = np.zeros(shape=65535)
+x = np.zeros(shape=65536) #6511
 
 def add(image, **kwargs):
+    min = kwargs.get('min', -32768) 
     img = Image.open(image)
-    print("on image", image)
     data = np.array(img)
-    #TODO get min value processed to cap graph x axis and make graph smaller
-    #print(data)
+
+    print("on image", image)
     global x
-    for i in data:
-        for e in i:
-            if x[e + 32768] < 999999999999 :
-                x[e + 32768] += 1 # e + 10
+    for row in data:
+        for pixelValue in row: 
+            if x[pixelValue - min] < 999999999999 :
+                x[pixelValue - min] += 1 
     
-    # x = x / 1024
+    # x = x / imgSize (noramlize)
 
-
-    
 
 
 # def get_error_logs_from_pickle(filename) -> typing.Tuple[ErrorLogger]:
@@ -111,16 +65,19 @@ def add(image, **kwargs):
 
 #     return objs
 
-def plotError(x):
-    min = (np.where(x > 1)[0][0]) 
-    max = np.nonzero(x)[0][-1]
-    index = np.arange((min-32778),(max-32768),1)#np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)#
-    x = x[(min-10):(max)]
-    x = x/np.max(x)
-    print("Col Number: " + str(x.shape[0]))
-    # print(x[12768])
-    plt.bar(index,x,color="blue", width=1)
+def plotError(x,minL):
+    firstNonZeroIndex = np.nonzero(x)[0][0] #(np.where(x > 1)[0][0]) 
+    LastNonZeroIndex = np.nonzero(x)[0][-1]
+    index = np.arange((firstNonZeroIndex + minL), (LastNonZeroIndex + minL), 1) #np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)
+    x = x[firstNonZeroIndex:LastNonZeroIndex]
+
+    x = x/np.max(x)     #normalize
+    
+    plt.plot(index, x)
     plt.show()
+
+    # plt.bar(index,x,color="blue", width=1)
+    # plt.show()
 
 
 
@@ -132,21 +89,20 @@ def open_pickle(filename):
 
 
 def save_pickle(data):
-    file = newFilename(os.path.join('output', str(time.strftime("%Y-%m-%d-%H-%M"))), suffix='.pickle') #os.path.join(logdir,filename)
+    file = newFilename(os.path.join('output', str(time.strftime("%Y-%m-%d-%H-%M-%S"))), suffix='.pickle') #os.path.join(logdir,filename)
     #mode = 'ab' if os.path.isfile(file) else 'wb'
     with open(file, 'wb') as f:
         print("Saving pickled error data...")
         pickle.dump(data,f)
 
-# def valueDistribution():
 
-def datasetInfo(x):
-    print("Max Value At index:" + str(np.argmax(x)))
-    print("Max Value:" + str(np.max(x)))
-    print("Min Value At index:" + str(np.argmin(x)))
-    print("Min Value:" + str(np.min(x)))
-    print("First Non-zero Value at index: " + str((np.where(x > 1)[0][0])) + " in int16 index: " + str((np.where(x > 1)[0][0]) - 32768))
-    print("Last Non-zero Value at index: " + str(np.nonzero(x)[0][-1]) + " in int16 index: " + str(np.nonzero(x)[0][-1] - 32768))
+def pixelDistInfo(x,min):
+    print("Max Value At index: " + str(np.argmax(x)))
+    print("Max Value: " + str(np.max(x)))
+    print("Min Value At index: " + str(np.argmin(x)))
+    print("Min Value: " + str(np.min(x)))
+    print("First Non-zero Value at index: " + str((np.where(x > 1)[0][0])) + " in int16 index: " + str((np.where(x > 1)[0][0]) +min))
+    print("Last Non-zero Value at index: " + str(np.nonzero(x)[0][-1]) + " in int16 index: " + str(np.nonzero(x)[0][-1] +min))
 
 isStd = []
 
@@ -161,19 +117,34 @@ def stdDev(image,**kwargs):
     if(stdD > 1.6):
         isStd.append(image)
 
+
+
+def imageInfo(image):
+    img = Image.open(image)
+    print("Image Size: " +str( img.size))
+    print("Image Mode: " +str( img.mode))
+    #data = np.array(img)
+
+
+
 if __name__ == '__main__':
-    # parser = get_parser()
-    # args = parser.parse_args()
-
-
+    parser2 = getParser()
+    args = parser2.parse_args()
+    print(args)
+    if args.command == 'open':
+        distribution = open_pickle(args.pickle_filename)
+        min = args.min
+        x = distribution
+    # elif args.command == 'info':
+    #     processDirOrFile(imageInfo, target=args.image_filename)
+    elif args.command == 'hist':
+        processDirOrFile(add, target=args.image_filename, min=args.min, max=args.max)
+        min = args.min
+        save_pickle(x)
+    pixelDistInfo(x,min)
+    plotError(x,min)
 
     
-    grid("data\\stdv",5)
-    processDirOrFile(stdDev, target="data\\stdv")
-    grid(isStd,5)
-    # x = open_pickle('2023-10-12-22-07.pickle')
-    # datasetInfo(x)
-
-
-    # save_pickle(x)
-    # plotError(x)
+    #grid("data\\stdv",5)
+    #processDirOrFile(add, target="..\\Elevation")
+    #grid(isStd,5)

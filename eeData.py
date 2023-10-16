@@ -1,9 +1,8 @@
 import numpy as np
 import ee
-import time
+import time, sys, os
 
-import logging, json
-import os
+import logging
 from decimal import *
  
 
@@ -125,7 +124,7 @@ def eeExport(image,description,scale,fileName,region=None):
         task = ee.batch.Export.image.toDrive(image=image, 
                                             description=description,
                                             scale = scale,
-                                            folder = 'ElevationSigned',
+                                            folder = 'Europe',
                                             #dimensions= dimensionStr,
                                             fileNamePrefix=fileName,
                                             crs='EPSG:4326',
@@ -135,7 +134,7 @@ def eeExport(image,description,scale,fileName,region=None):
         task = ee.batch.Export.image.toDrive(image=image, 
                                     description=description,
                                     scale = scale,
-                                    folder = 'ElevationSigned',
+                                    folder = 'Europe',
                                     #dimensions= dimensionStr,
                                     fileNamePrefix=fileName,
                                     crs='EPSG:4326',
@@ -188,10 +187,8 @@ def getImagePair(coords, outputRes):
 
 
 
-def getImage(coords, datasetName, outputRes):
-    fileName = str(coordinateLogger.entry)
-
-    coordinateLogger.log(coords[0])
+def getImage(coords, outputRes, datasetName='SRTM'):
+    processedLogger.info(str(coords[0]))
 
     region = ee.Geometry.Polygon(coords)
     if(datasetName is 'SRTM'):
@@ -200,9 +197,11 @@ def getImage(coords, datasetName, outputRes):
         #elevation_clampled = elevation_16bit.clamp(-10,6500)
         #pixelSpace_grayscale = elevation.visualize(bands=['elevation'], min=-10 , max=6500)
         if (elevationCheck(elevation_16bit,region,outputRes)):
-            fileName = "el_"+ fileName
-            processedLogger.info(str(coords[0]))
-            return eeExport(elevation_16bit, fileName, 30.922080775909325, fileName)
+            #fileName = "el_"+ fileName
+            fileName = str(coordinateLogger.entry)
+            coordinateLogger.log(coords[0])
+            logger.info(str(coords[0]))  
+            return eeExport(elevation_16bit, fileName, 30.922080775909325, fileName,region)
         else:
             return None
 
@@ -213,7 +212,10 @@ def getImage(coords, datasetName, outputRes):
         if (satCheck(img_median,region,outputRes)):
             pixelSpace_img = img_median.visualize(bands=['SR_B4', 'SR_B3', 'SR_B2'], min= 7219, max= 14355) #Best visual results #, gamma=1.2
             print(pixelSpace_img.getInfo())
-            fileName = "sat_"+ fileName
+            fileName = str(coordinateLogger.entry)
+            # fileName = "sat_"+ fileName
+            coordinateLogger.log(coords[0])
+            logger.info(str(coords[0]))  
             return eeExport(pixelSpace_img, fileName, 30.922080775909325, fileName, region)
         else: 
             return None
@@ -264,7 +266,7 @@ def satCheck(eeImage, region, imgSize):
 
 
 
-def startTask(coordinates,size, dataFunction):
+def startTask(coordinates, dataFunction,size):
     task = dataFunction(coordinates, size)
     if task is not None:
         while(str(task.status()['state']) != 'FAILED' and str(task.status()['state']) != 'COMPLETED' 
@@ -291,45 +293,51 @@ def getDataset(imgSize,dataFunction, startCoord=[-180,-56]):
     maxLong = 60
     
     currentCoord = startCoord 
-    a = 0
-    while True:
-        try:
-            coords = getRegionCoordinates(imgSize, currentCoord)      
-        except Exception as e:
-            errorLogger.error("Exception Occured Serve-side (coords), with coord: " + str(currentCoord))
-            print("SERVER FAIL: Logging coordenates. Continuing...")
-            print(e)
-            pass
 
-        if(coords[1][1] > maxLat):
-            print("REACHED OUT OF BOUNDS LATITUDE. STOPPING.")
-            break
-        elif(coords[2][0] > maxLong):
-            currentCoord = [minLong,coords[2][1]] #reset long, next lat, i.e going to next column in same row
-        else:
-            currentCoord = coords[3] #next long, same lat, i.e going to next column in same row
+    
+    try:
+        while True:
+            try:
+                coords = getRegionCoordinates(imgSize, currentCoord)      
+            except Exception as e:
+                errorLogger.error("Exception: Connection Error (getting coords): " + str(currentCoord))
+                print("SERVER FAIL: Logging coordenates. Continuing...")
+                print(e)
+                pass
 
-        try:
-            startTask(coords, dataFunction,imgSize)          
-        except Exception as e:
-            errorLogger.error("Exception Occured Serve-side (image), with coord: " + str(coords[0]))
-            print("SERVER FAIL: Logging coordenates. Continuing...")
-            print(e)
-            pass
+            if(coords[1][1] > maxLat):
+                print("REACHED OUT OF BOUNDS LATITUDE. STOPPING.")
+                break
+            elif(coords[2][0] > maxLong):
+                currentCoord = [minLong,coords[2][1]] #reset long, next lat, i.e going to next column in same row
+            else:
+                currentCoord = coords[3] #next long, same lat, i.e going to next column in same row
 
-        print("Server OK")
-        print("-----------------------------------------------")
-        print()
-        a += 1
-        time.sleep(1)   
+            try:
+                startTask(coords, dataFunction,imgSize)          
+            except Exception as e:
+                errorLogger.error("Exception: Connection Error (exporting image): " + str(coords[0]))
+                print("SERVER FAIL: Logging coordenates. Continuing...")
+                print(e)
+                time.sleep(10)
+                pass
 
+            print()
+            print("-----------------------------------------------")
+            print()
+            time.sleep(1)   
+
+    except KeyboardInterrupt:
+        errorLogger.error("Exception: Keyboard Interrupt:" + str(coords[0]))
+        print("CLIENT FAIL: Keyboard Interrupt. Logging coordenates ... Stopping.")
+        sys.exit()
 
 
 
 if __name__ == '__main__':
     imgSize = 1024
-    startCoord = [-9,12]
-
+    startCoord = [49.88000000000002, 14.56]
+    #[-9,12]
     getDataset(imgSize,getImage,startCoord)
     #t = ee.data.getOperation(taskId)
     #print(t['metadata']['state'])

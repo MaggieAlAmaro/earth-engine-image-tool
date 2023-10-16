@@ -1,0 +1,37 @@
+New Start: 2023-10-11-19-45
+Exception Occured Serve-side (image), with coord: [18.306666666666654, 12.853333333333333]
+Exception Occured Serve-side (image), with coord: [18.87555555555554, 12.853333333333333]
+Exception Occured Serve-side (image), with coord: [40.777777777777736, 13.706666666666667]
+New Start: 2023-10-12-08-57
+New Start: 2023-10-12-08-57
+Exception Occured Serve-side (image), with coord: [49.88000000000002, 14.56]
+Exception Occured Serve-side (image), with coord: [50.16444444444446, 14.56]
+Exception Occured Serve-side (image), with coord: [50.44888888888891, 14.56]
+Exception Occured Serve-side (image), with coord: [50.733333333333356, 14.56]
+Exception Occured Serve-side (image), with coord: [51.0177777777778, 14.56]
+Exception Occured Serve-side (image), with coord: [51.30222222222225, 14.56]
+Exception Occured Serve-side (image), with coord: [51.586666666666694, 14.56]
+Exception Occured Serve-side (image), with coord: [51.87111111111114, 14.56]
+Exception Occured Serve-side (image), with coord: [52.15555555555559, 14.56]
+Exception Occured Serve-side (image), with coord: [52.44000000000003, 14.56]
+Exception Occured Serve-side (image), with coord: [52.72444444444448, 14.56]
+Exception Occured Serve-side (image), with coord: [53.008888888888926, 14.56]
+Exception Occured Serve-side (image), with coord: [53.29333333333337, 14.56]
+Exception Occured Serve-side (image), with coord: [53.57777777777782, 14.56]
+Exception Occured Serve-side (image), with coord: [53.862222222222265, 14.56]
+Exception Occured Serve-side (image), with coord: [54.14666666666671, 14.56]
+Exception Occured Serve-side (image), with coord: [54.43111111111116, 14.56]
+Exception Occured Serve-side (image), with coord: [54.7155555555556, 14.56]
+Exception Occured Serve-side (image), with coord: [55.00000000000005, 14.56]
+New Start: 2023-10-12-10-50
+New Start: 2023-10-12-10-53
+Keyboard Interrupt:[49.88000000000002, 14.56]
+New Start: 2023-10-12-10-54
+Exception: Keyboard Interrupt:[49.88000000000002, 14.56]
+New Start: 2023-10-12-10-55
+Exception: Connection Error (exporting image): [44.47555555555554, 15.697777777777778]
+Exception: Connection Error (exporting image): [12.333333333333336, 17.68888888888888]
+Exception: Connection Error (exporting image): [35.08888888888881, 18.257777777777765]
+Exception: Connection Error (exporting image): [56.991111111111174, 21.102222222222192]
+Exception: Connection Error (exporting image): [-5.3022222222222215, 21.95555555555552]
+Exception: Keyboard Interrupt:[-1.3199999999999985, 21.95555555555552]

@@ -9,3 +9,4 @@ output/*
 data/*
 !data/*.txt
 __pycache__
+tests

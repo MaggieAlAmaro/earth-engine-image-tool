@@ -54,6 +54,6 @@ def makeOutputFolder(folderFunctionName):
 
 
 def makeLogFolder(logFolderName, folderFunctionName):
-    output = os.path.join(logFolderName, (folderFunctionName + "-" + time.strftime("%Y-%m-%d-%H-%M")))
+    output = os.path.join(logFolderName, (folderFunctionName + "-" + time.strftime("%Y-%m-%d-%H-%M-%S")))
     os.mkdir(output)
     return output
