@@ -1,9 +1,10 @@
 *.png
-!stdvTest.png
-!stdvTest2.png
+!sample_000001.png
+!epoch_evolution.png
+!newTrainingSample.png
 *.tif
 *.pickle
-
+samples
 output/*
 !output/Example
 data/*
