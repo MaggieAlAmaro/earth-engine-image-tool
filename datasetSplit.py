@@ -7,7 +7,7 @@ import math
 def getParser(**parser_kwargs):
     parser = argparse.ArgumentParser(**parser_kwargs, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('dir', type=str, help='Name of data directory') 
-    parser.add_argument('-r','--ratio', type=int, help='Ratio of training to validation images', default=1/6) 
+    parser.add_argument('-r','--ratio', type=float, help='Ratio of training to validation images', default=1/6) 
     return parser
 
 def filenameTxt(dataDir):
@@ -85,6 +85,8 @@ def splitIntoTrainValidationTxt(filenameTxt, ratio):
 if __name__ == '__main__':
     parser = getParser()
     args = parser.parse_args()
+
+    # print(checkIfDirValid(args.dir))
 
     fn = createFilenameTxt(args.dir)
     splitIntoTrainValidationTxt(fn, args.ratio)
