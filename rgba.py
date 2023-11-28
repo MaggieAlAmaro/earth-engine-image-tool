@@ -19,6 +19,11 @@ def getParser(**parser_kwargs):
     seperateParser = subparsers.add_parser("seperate", help="separate the RGB and A channels of an RGBA image")
     seperateParser.add_argument('rgba_name', type=str, help='Name of image or directory to merge with.')
     seperateParser.add_argument('-o','--out_dir', type=str, help='Output Directory')
+
+    stdParser = subparsers.add_parser("stdDev", help="Convert image to 8bit")
+    stdParser.add_argument('image_filename', type=str, help='Name of image')   
+    stdParser.add_argument('-limit', type=float, help='Type of scaling', default=4.5)
+
     #return mergeParser, seperateParser
     return parser
 
@@ -61,7 +66,22 @@ def mergeRGBA(fileRGB, fileA, **kwargs):
     rgba = Image.merge('RGBA', (r, g, b, a))
     rgba.save(fn)
 
+
+def stdDev(image,**kwargs):
+    limit = kwargs.get('limit')
+    aDir = kwargs.get('above')
+    bDir = kwargs.get('below')
+
+    img = Image.open(image)
+    r, g, b, a = img.split()
+    data = np.array(a)
+    stdD = np.std(data)
     
+    out = bDir if stdD < limit else aDir
+    newFileName = newFilename(image, suffix=".png",outdir=out)
+    img.save(newFileName)
+
+
 if __name__ == '__main__':
     parser = getParser()
     args = parser.parse_args()
@@ -75,3 +95,11 @@ if __name__ == '__main__':
         os.mkdir(rgbDir)
         os.mkdir(aDir)
         processDirOrFile(separateAandRGB, target=args.rgba_name)
+    elif args.command == 'stdDev':
+        outDir = makeOutputFolder('stdDev')
+        aDir = os.path.join(outDir,'above')
+        bDir = os.path.join(outDir,'below')
+        os.mkdir(bDir)
+        os.mkdir(aDir)
+        processDirOrFile(stdDev, target=args.image_filename, limit=args.limit, above=aDir,below=bDir)
+    
