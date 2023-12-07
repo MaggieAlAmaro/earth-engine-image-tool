@@ -20,7 +20,13 @@ def getParser(**parser_kwargs):
     subparsers = parser.add_subparsers(dest="command")
     openParser = subparsers.add_parser("open", help="Convert to png")   
     openParser.add_argument('pickle_filename', type=str, help='Name of image')  
-    openParser.add_argument('-min', type=int, help='Name of image',default= -32768)#-10)  
+    openParser.add_argument('-min', type=int, help='Name of image',default= -32768)#-10)
+
+    
+    tParser = subparsers.add_parser("transform", help="Convert to png")   
+    tParser.add_argument('pickle_filename', type=str, help='Name of image')  
+    tParser.add_argument('-min', type=int, help='Name of image',default= -32768)#-10)  
+    tParser.add_argument('-max', type=int, help='Name of image',default=255)  
     
     infoParser = subparsers.add_parser("info", help="Convert to png")   
     infoParser.add_argument('image_filename', type=str, help='Name of image')  
@@ -32,7 +38,8 @@ def getParser(**parser_kwargs):
     return parser
     
 
-x = np.zeros(shape=65536) #6511
+global x
+x = np.zeros(shape=256) #6511 #65536
 
 def add(image, **kwargs):
     min = kwargs.get('min', -32768) 
@@ -43,8 +50,8 @@ def add(image, **kwargs):
     global x
     for row in data:
         for pixelValue in row: 
-            if x[pixelValue - min] < 999999999999 :
-                x[pixelValue - min] += 1 
+            if x[pixelValue + abs(min)] < 999999999999 :
+                x[pixelValue +  abs(min)] += 1 
     
     # x = x / imgSize (noramlize)
 
@@ -65,20 +72,82 @@ def add(image, **kwargs):
 
 #     return objs
 
-def plotError(x,minL):
-    firstNonZeroIndex = np.nonzero(x)[0][0] #(np.where(x > 1)[0][0]) 
-    LastNonZeroIndex = np.nonzero(x)[0][-1]
+def plotError(arr,minL):
+    firstNonZeroIndex = np.nonzero(arr)[0][0] #(np.where(x > 1)[0][0]) 
+    LastNonZeroIndex = np.nonzero(arr)[0][-1]
+    print((firstNonZeroIndex + minL))
     index = np.arange((firstNonZeroIndex + minL), (LastNonZeroIndex + minL), 1) #np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)
-    x = x[firstNonZeroIndex:LastNonZeroIndex]
+    index = index+abs( (firstNonZeroIndex + minL))
+    index = index/len(index)
+    arr = arr[firstNonZeroIndex:LastNonZeroIndex]
 
-    x = x/np.max(x)     #normalize
+    n = np.sum(arr)
+
+
+    mean = np.dot(arr,index)/n
+   
+
+    print("Mean:",mean)
+    lmbda = 1/mean
+    std = np.sqrt(np.sum(arr*np.square(index-mean))/n)
+    print("Std:",std)
+
+    #Confirmation
+    # new = []
+    # for i in range(0,len(x)):
+    #     gugu = np.zeros(int(x[i]))
+    #     gugu.fill(index[i])
+    #     new.extend(gugu)
+    # std = np.std(new)
+    # mean = np.mean(new)
+    # print("Std2:",std)
+    # print("Mean2:",mean)
+
     
-    plt.plot(index, x)
-    plt.show()
 
+    # normalizedData = (x - firstNonZeroIndex)/(LastNonZeroIndex-firstNonZeroIndex)  
+    print(np.max(arr))
+    arr = arr/np.max(arr)     #normalize
+    
+    #prob dist
+    #x = x/n
+
+    # thing = np.linspace(mean - 3*std, mean + 3*std, 1000)
+    
+    thing = np.linspace(0, 1, 100)
+    f = np.exp(-np.square(thing-mean)/(2*(std**2)))/(np.sqrt(2*np.pi)*std)
+    plt.plot(thing, f,'-')
+
+
+
+    thing2 = np.linspace(0, mean + 3*std, 100)
+
+    # uniform = 1/ (b - a)
+    interval = 1 - 0
+    # #scaler = (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(thing-mean)/(2*(std**2))) * interval)
+    # print("uhuhu",(np.sqrt(2*np.pi)*std)* 0.9/(np.exp(-np.square(0.9-mean)/(2*(std**2))) * interval))
+    # plt.plot(thing, scaler,'-')
+
+
+    # plt.show()
+
+
+
+    plt.plot(index, arr,'--')
+
+    # scaled = (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(arr-mean)/(2*(std**2))) * interval)
+    # plt.plot(index, scaled,'--')
+    exp = lmbda* np.exp(-lmbda * thing)
+    expNorm = np.exp(-lmbda * thing)
+    plt.plot(thing, exp,'-')
+    plt.plot(thing, expNorm,'-')
+    plt.show()
+    return mean,std
     # plt.bar(index,x,color="blue", width=1)
     # plt.show()
 
+def function(x, mean, std):
+    return (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(x-mean)/(2*(std**2))))
 
 
 def open_pickle(filename):
@@ -106,16 +175,7 @@ def pixelDistInfo(x,min):
 
 isStd = []
 
-def stdDev(image,**kwargs):
-    img = Image.open(image)
-    print("on image", image)
-    data = np.array(img)
-    stdD = np.std(data)
-    print("Standard Deviation is: " + str(stdD))
-    print()
-    global isStd
-    if(stdD > 1.6):
-        isStd.append(image)
+
 
 
 
@@ -125,6 +185,8 @@ def imageInfo(image):
     print("Image Mode: " +str( img.mode))
     #data = np.array(img)
 
+def myfunc(x):
+    return x**(1/300)
 
 
 if __name__ == '__main__':
@@ -135,15 +197,30 @@ if __name__ == '__main__':
         distribution = open_pickle(args.pickle_filename)
         min = args.min
         x = distribution
+
+
+    
+    elif args.command == 'transform':
+        distribution = open_pickle(args.pickle_filename)
+        #normalize
+        min = 0 #args.min
+
+        myfunc_vec = np.vectorize(myfunc)
+        normalizedData = myfunc_vec(distribution)
+        
+        #normalizedData = np.cbrt(distribution)
+        print(np.max(normalizedData))
+        x = normalizedData
+
     # elif args.command == 'info':
     #     processDirOrFile(imageInfo, target=args.image_filename)
     elif args.command == 'hist':
         processDirOrFile(add, target=args.image_filename, min=args.min, max=args.max)
         min = args.min
+        # x[32768] -= 3633938
         save_pickle(x)
     pixelDistInfo(x,min)
     plotError(x,min)
-
     
     #grid("data\\stdv",5)
     #processDirOrFile(add, target="..\\Elevation")
