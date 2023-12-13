@@ -1,0 +1,44 @@
+removeLines:
+  class: process.BlackLineRemoval
+  params:
+    size: [1024, 1024]
+    value: 0
+crop:
+  class: process.Crop
+  params:
+    size: [1024, 1024]
+tile:
+  class: process.Tile
+  params:
+    size: [256, 256]
+8bit:
+  class: process.Scale
+  params:
+    min: -415
+    max: 8729
+scale:
+  class: process.Scale
+  params:
+    type: "iExp"
+    min: -415
+    max: 8729
+rescale:
+  class: process.Rescale
+  params:
+    type: "iExp"
+    min: 0
+    max: 255
+stdDev:
+  class: process.StdDevSort
+  params:
+    limit: 4.5
+
+datasetSplit:
+  class: datasetSplit.DatasetSplit
+  params:
+    shuffle: True
+    valPercent: 0.15
+histogram:
+  bit_depth: u16bit
+  size: [256, 256] #[1024,1024]
+  image_type: "RGBA"

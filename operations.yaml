@@ -1,0 +1,9 @@
+data_target: output\stdDev-2023-12-09-00-47-11\above #data\1channelElevation16bit\newEurope #data\rgba\RGBA
+data_type: grayscale
+operations:
+  # - removeLines
+  # - crop
+  # - scale
+  # - tile
+  # - stdDev
+  - datasetSplit

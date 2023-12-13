@@ -4,6 +4,8 @@
 !results/**/*.png
 !results/*.tif
 
+cli_process.py
+attempt_process.py
 
 #folders
 __pycache__
