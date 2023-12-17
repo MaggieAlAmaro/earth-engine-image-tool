@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 from PIL import Image
 import os
+import rasterio
 
 from utils import processDirOrFile, newFilename, makeOutputFolder
 
@@ -49,22 +50,21 @@ def separateAandRGB(image, **kwargs):
     rgb.save(os.path.join(rgbDir,newRGBFileName))
     a.save(os.path.join(aDir,newAFileName))
 
+def checkBounds(fileRGB, fileA, **kwargs):
+    img1 = rasterio.open(fileRGB)
+    img2 = rasterio.open(fileA)
+    return img1.bounds == img2.bounds
+    
 
 def mergeRGBA(fileRGB, fileA, **kwargs):
     outFn = kwargs.get('out', None)
-    if (outFn == None):
-        fn = newFilename(fileRGB, suffix="RGBA.png")
-    else:
-        fn = outFn
-
-    #TODO: mcheck if filename part is same, if so get new filenameFrom file
 
     rgb = Image.open(fileRGB)
     a = Image.open(fileA)
     a = a.convert('L')
     r, g, b = rgb.split()
     rgba = Image.merge('RGBA', (r, g, b, a))
-    rgba.save(fn)
+    rgba.save(outFn)
 
 
 def stdDev(image,**kwargs):
