@@ -8,8 +8,8 @@ class MyImage(ABC):
     def __init__(self, image_filename) -> None:
         self.image_filename = image_filename
         self.image = Image.open(image_filename)
-        self.size = self.image.size
         self.data = np.array(self.image)
+        self.size = self.data.shape #self.image.size -> is backwards
 
     @abstractmethod
     def post_process_step(self, processedData=None) -> Image: 
@@ -34,11 +34,14 @@ class GrayscaleImage(MyImage):
         return Image.fromarray(processedData)
 
 
+
 class RGBAImage(MyImage):
-    def __init__(self, image_filename, proccessA=True) -> None:
+    def __init__(self, image_filename, proccessA=False) -> None:
         super().__init__(image_filename)
+        #rgba.separateAandRGB(image_filename)
         self.r, self.g, self.b, self.a = self.image.split()
         self.processA = proccessA
+        
         if proccessA:
             self.data = np.array(self.a)
         else:

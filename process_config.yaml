@@ -12,10 +12,12 @@ tile:
   params:
     size: [256, 256]
 8bit:
-  class: process.Scale
+  class: process.To8bit
   params:
-    min: -415
-    max: 8729
+    min: 0
+    max: 255
+    # min: -415
+    # max: 8729
 scale:
   class: process.Scale
   params:
@@ -31,7 +33,11 @@ rescale:
 stdDev:
   class: process.StdDevSort
   params:
-    limit: 4.5
+    limit: 3.5  #4.5
+brightness:
+  class: process.BrightnessSort
+  params: Null
+
 
 datasetSplit:
   class: datasetSplit.DatasetSplit

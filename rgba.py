@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 from PIL import Image
 import os
-import rasterio
+#import rasterio
 
 from utils import processDirOrFile, newFilename, makeOutputFolder
 
@@ -31,14 +31,11 @@ def getParser(**parser_kwargs):
 
 def separateAandRGB(image, **kwargs):
     outFn = kwargs.get('out', None)
-    aDir = kwargs.get('a', a)
-    rgbDir = kwargs.get('rgb', rgb)
-    if(outFn == None):
-        newRGBFileName = newFilename(image, suffix="RGB.png")
-        newRGBFileName = newFilename(image, suffix="A.png")
-    else:
-        newRGBFileName = outFn + "RGB.png"
-        newAFileName = outFn + "A.png"
+    aDir = os.path.join(outFn,'a')
+    rgbDir = os.path.join(outFn,'rgb')
+
+    fna = newFilename(image, suffix=".png", outdir=aDir)
+    fnrgb = newFilename(image, suffix=".png", outdir=rgbDir)
 
     img = Image.open(image)
     r, g, b, a = img.split()
@@ -47,8 +44,8 @@ def separateAandRGB(image, **kwargs):
     
     
 
-    rgb.save(os.path.join(rgbDir,newRGBFileName))
-    a.save(os.path.join(aDir,newAFileName))
+    rgb.save(fnrgb)
+    a.save(fna)
 
 def checkBounds(fileRGB, fileA, **kwargs):
     img1 = rasterio.open(fileRGB)
@@ -67,19 +64,6 @@ def mergeRGBA(fileRGB, fileA, **kwargs):
     rgba.save(outFn)
 
 
-def stdDev(image,**kwargs):
-    limit = kwargs.get('limit')
-    aDir = kwargs.get('above')
-    bDir = kwargs.get('below')
-
-    img = Image.open(image)
-    r, g, b, a = img.split()
-    data = np.array(a)
-    stdD = np.std(data)
-    
-    out = bDir if stdD < limit else aDir
-    newFileName = newFilename(image, suffix=".png",outdir=out)
-    img.save(newFileName)
 
 
 if __name__ == '__main__':
@@ -94,12 +78,11 @@ if __name__ == '__main__':
         aDir = os.path.join(outputDir,'a')
         os.mkdir(rgbDir)
         os.mkdir(aDir)
-        processDirOrFile(separateAandRGB, target=args.rgba_name)
-    elif args.command == 'stdDev':
-        outDir = makeOutputFolder('stdDev')
-        aDir = os.path.join(outDir,'above')
-        bDir = os.path.join(outDir,'below')
-        os.mkdir(bDir)
-        os.mkdir(aDir)
-        processDirOrFile(stdDev, target=args.image_filename, limit=args.limit, above=aDir,below=bDir)
-    
+        processDirOrFile(separateAandRGB, target=args.rgba_name, out=outputDir)
+    else:
+        img = Image.open('.\\10.tif')
+        data = np.asarray(img)
+        r,g,b,a = img.split()
+        Image.merge('RGB',(r,g,b)).save()
+
+        

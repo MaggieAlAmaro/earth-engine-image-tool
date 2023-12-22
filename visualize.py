@@ -4,7 +4,9 @@ import numpy as np
 from PIL import Image
 import argparse
 from itertools import product
+#import rasterio
 import os
+import math
 
 plt.style.use('dark_background')
 
@@ -27,7 +29,8 @@ This folder EITHER:
     return parser
 
 
-def open(img):
+
+def open(img, **kwargs):
     img = Image.open(img)
     print("Shape: ", img.size)
     print("Mode: ", img.mode)
@@ -43,11 +46,34 @@ def open(img):
 #TODO get adequate grid shape via the number of images. The current solution wont work for prime numbers for example
 def makeImageGrid(array, ncols=1):
     n, h, w, c = array.shape
-    nrows = n//ncols
-    assert n == nrows*ncols
-    result = (array.reshape(nrows, ncols, h, w, c)
-              .swapaxes(1,2)
-              .reshape(h*nrows, w*ncols, c))
+    ncols = math.ceil(math.sqrt(n))
+    nrows = math.ceil(n/ncols)
+
+    result = []
+    for j in range(nrows):
+        row = array[j*ncols]
+        for i in range(1, ncols):
+            if j*ncols + i >= n:
+                break
+            row = np.c_['1',row, array[j*ncols + i]]
+        if j==nrows-1: #and ncols != nrows:        
+            extra = (nrows * ncols) - n
+            print(row.shape)
+            extraArr = np.full((h, w*extra, c),125, dtype=np.uint16)
+            print(extraArr.shape)
+            row = row = np.c_['1',row, extraArr]
+            print(row.shape)
+
+        if len(result) != 0:
+            result = np.r_['0',result, row]
+        else:
+            result = row
+    #print(result.shape)
+    # nrows = n//ncols
+    # assert n == nrows*ncols
+    # result = (array.reshape(nrows, ncols, h, w, c)
+    #           .swapaxes(1,2)
+    #           .reshape(h*nrows, w*ncols, c))
     return result
 
 
@@ -61,9 +87,11 @@ def grid(logdir, rows):
 
     elif(os.path.isdir(logdir)):
         dirOrFiles = os.listdir(logdir)
+        dirOrFiles.sort()
         #dirs inside logdir
         if all(os.path.isdir(os.path.join(logdir,content)) for content in dirOrFiles):
             for dir in dirOrFiles:
+                print(dir)
                 dirPath = os.path.join(logdir,dir)
                 imgInDir = os.listdir(dirPath)
                 dirImgs = [Image.open(os.path.join(dirPath,img)) for img in imgInDir]

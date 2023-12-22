@@ -8,7 +8,7 @@ from typing import List, Dict
 #import analytics, tests, visualize, rgba
 from process import Processor
 import importlib
-from Image import MyImage, RGBAImage, GrayscaleImage
+from Image import MyImage, RGBAImage, GrayscaleImage, RGBImage
 from datasetSplit import DatasetSplit, HistogramAnalysis
 
  
@@ -61,8 +61,10 @@ if __name__ == '__main__':
     imgType = MyImage
     if ops['data_type'] == "RGBA":
         imgType = RGBAImage
-    elif ops['data_type'] == "grayscale":
+    elif ops['data_type'] == "GS":
         imgType = GrayscaleImage
+    elif ops['data_type'] == "RGB":
+        imgType = RGBImage
 
 
     # init needed processors

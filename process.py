@@ -189,10 +189,10 @@ class BlackLineRemoval(Processor):
         blackLineCount = 0  
         for i in range(startIdx, endIdx):
             if(axis == 0):
-                if (imgData[:,i] == value).all(): 
+                if (imgData[i,:] == value).all(): 
                     blackLineCount += 1
             if(axis == 1):
-                if (imgData[i,:] == value).all():
+                if (imgData[:,i] == value).all():
                     blackLineCount += 1
         return blackLineCount
 
@@ -201,6 +201,7 @@ class BlackLineRemoval(Processor):
             print("Image is already the expected shape.")
             return (0, 0, size[1], size[0])
 
+        
         
         rowExtra = size[0] - self.expectedSize[0]
         colExtra = size[1] - self.expectedSize[1]        
@@ -316,6 +317,102 @@ class Augment(Processor):
         img.save(fn)
 
 
+#TODO make assert to check if the original image is 8bit
+class To8bit(Processor):
+    def __init__(self, config_args) -> None:
+        self.min = config_args['min']
+        self.max = config_args['max']
+        self.outputDir = makeOutputFolder('8bit')
+
+        
+    def to8bit(self, data):
+        # make unsigned
+        if self.min != 0:
+            data = data - self.min                             
+            max = self.max - self.min
+            min = 0
+        else:
+            min = self.min
+            max = self.max
+
+        normalizedData = (data - min)/(max - min)
+        rescaledData = normalizedData * (255 - 0)  # 8bit -> [0,255]
+        return rescaledData.astype('uint8')
+
+    def process(self, image: MyImage):
+        resultData = self.to8bit(image.data)
+        img = image.post_process_step(resultData)
+        fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
+        img.save(fn)
+
+
+#if 16bit (unsigned int), [0, 65455]
+#if 16bit (signed int), [-32768, 32767]
+#TODO make this work lol
+class To16bit(Processor):
+    def __init__(self, config_args) -> None:
+        self.min = config_args['min']
+        self.max = config_args['max']
+        self.outputDir = makeOutputFolder('16bit')
+
+        
+    def to16bit(self, data):
+        # TODO
+        return
+    
+    def process(self, image: MyImage):
+        img = self.image.convert(mode='I;16')
+
+        #resultData = self.to16bit(image.data)
+        #img = image.post_process_step(resultData)
+        fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
+        img.save(fn)
+
+
+# @ Functionality adapted from Marian Stefanescu, Towards Data Science, Medium
+# https://towardsdatascience.com/measuring-enhancing-image-quality-attributes-234b0f250e10
+# Credit to Darel Rex Finley, https://alienryderflex.com/hsp.html
+class BrightnessSort(Processor):
+    def __init__(self, config_args) -> None:
+        self.outputDir = makeOutputFolder('brightness')
+        self.dark = os.path.join(self.outputDir,'dark')
+        self.bright = os.path.join(self.outputDir,'bright')
+        os.mkdir(self.dark)
+        os.mkdir(self.bright)
+        #Very dark, dark, Normal, Bright, Very Bright
+
+
+
+    def pixel_brightness(self, rgbVector) -> float:
+        r, g, b = rgbVector
+        return math.sqrt(0.299 * r ** 2 + 0.587 * g ** 2 + 0.114 * b ** 2)
+    
+    def image_brightness(self, data, size):
+        nr_of_pixels = size[0]* size[1]
+        brightness = 0
+        for i in range(size[0]):
+            for j in range(size[1]):
+                brightness += self.pixel_brightness(data[i][j])
+                # func = np.vectorize(self.pixel_brightness)
+        return brightness/ nr_of_pixels
+
+    
+    def sortToDir(self, data, size):
+        brightness = self.image_brightness(data, size)
+        print("Bright value: ", brightness)
+        return self.dark if brightness < 215 else self.bright
+
+        
+    def process(self, image: MyImage):
+        # only for rgb or rgba images
+        assert(len(image.size) > 2)
+        resultOutDir = self.sortToDir(image.data, image.size)
+        fn = newFilename(image.image_filename, suffix=".png", outdir=resultOutDir)
+        image.image.save(fn)
+
+
+
+
 
 def changeMode(self, **kwargs):
     outDir = kwargs.get('outDir','.')
@@ -333,35 +430,8 @@ def changeMode(self, **kwargs):
     self.image.save(newFileName)
 
 
-def to16bit(self, **kwargs):    
-    outDir = kwargs.get('outDir','.')
-    self.image = self.image.convert(mode='I;16')
-    fn = newFilename(self.image_filename, suffix=".png", outdir=outDir)
-    self.image.save(fn)
 
-#if 16bit (unsigned int), [0, 65455]
-#if 16bit (signed int), [-32768, 32767]
-def to8bit(self,  **kwargs):
-    outDir = kwargs.get('outDir','.')
-    min = kwargs.get('min')
-    max = kwargs.get('max')
-    self.data = self.data - min                               # make positive
-    max = max - min
-    min = 0
-    # img = rasterio.open(image)
-    # data = img.read()
-    #print(img.bounds)
-    normalizedData = (self.data- min)/(max-min)
-    rescaledData = normalizedData * (255 - 0)  # 8bit -> [0,255]
-    rescaledData = rescaledData.astype('uint8')
-    newImg = Image.fromarray(rescaledData) # makes the mode L
-    # fn = newFilename(image, suffix="_8bit.png", outdir=outDir)
-    
 
-# given that the SRTM image has a range estimate (according to earth engine) of:
-# [-10, 6500]
-# TODO: Use ee.reducer.max() and .min() to find the actual value limits of the SRTM image.
-# SOLUTIONS: because it cant calculate the max over the whole image, do max/min convolution over it until getting true values
 
 
 
@@ -391,9 +461,3 @@ def to8bit(self,  **kwargs):
     #         self.stdDev(limit=args.limit, outDir=outDir)
 
     
-
-
-# if __name__ == '__main__':
-#     parser = getParser()
-#     args = parser.parse_args()
-#     print(args)
