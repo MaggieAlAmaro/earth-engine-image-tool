@@ -1,0 +1,19 @@
+data_target: results\LDM_4Channel_v2\18v2 #data\1channelElevation16bit\newEurope #data\rgba\RGBA
+data_type: RGBA
+operations:
+  image:
+    # - removeLines
+    # - crop
+    # - scale
+    # - tile
+    # - stdDev
+    # - sizeCheck
+    # - changeMode
+    # - info
+    - separateRGBA
+  # batch:
+    # - mergeRGBA
+    # - subtract
+    # - compare
+    # - datasetSplit
+    # - histogram

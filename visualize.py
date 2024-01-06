@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
+
 import numpy as np
 from PIL import Image
 import argparse
@@ -7,6 +8,7 @@ from itertools import product
 #import rasterio
 import os
 import math
+import rasterio
 
 plt.style.use('dark_background')
 
@@ -30,11 +32,21 @@ This folder EITHER:
 
 
 
+# def open(img, **kwargs):
+#     img = Image.open(img)
+#     print("Shape: ", img.size)
+#     print("Mode: ", img.mode)
+#     img.show()
 def open(img, **kwargs):
-    img = Image.open(img)
-    print("Shape: ", img.size)
-    print("Mode: ", img.mode)
-    img.show()
+    imgPIL = Image.open(img)
+    print("Shape: ", imgPIL.size)
+    print("Mode: ", imgPIL.mode)
+    rasImg = rasterio.open(img)
+    print(rasImg.bounds)
+    print(rasImg.scales)
+    # rasImg.read(1)
+    # scales, statistics[1,2,3], window, window_bounds,bounds
+    # img.show()
 
     # with rasterio.open(args.name) as img:
     #     bandNbr = [band for band in range(1,img.count + 1)]
@@ -44,7 +56,7 @@ def open(img, **kwargs):
                     
 
 #TODO get adequate grid shape via the number of images. The current solution wont work for prime numbers for example
-def makeImageGrid(array, ncols=1):
+def makeSquareImageGrid(array):
     n, h, w, c = array.shape
     ncols = math.ceil(math.sqrt(n))
     nrows = math.ceil(n/ncols)
@@ -68,55 +80,106 @@ def makeImageGrid(array, ncols=1):
             result = np.r_['0',result, row]
         else:
             result = row
-    #print(result.shape)
-    # nrows = n//ncols
-    # assert n == nrows*ncols
-    # result = (array.reshape(nrows, ncols, h, w, c)
-    #           .swapaxes(1,2)
-    #           .reshape(h*nrows, w*ncols, c))
     return result
 
 
+def makeSimpleGrid(array, ncols, order='H'):
+    n, h, w, c = array.shape
+    # print(np.transpose(result, axes=(0,1,2)).shape)
+    nrows = n//ncols
+    assert n == nrows*ncols
+    if order == 'H':
+        return (array.reshape((nrows, ncols, h, w, c))
+                .swapaxes(1,2)
+                .reshape(h*nrows, w*ncols, c))
+    elif order == 'V':
+        return (array.reshape((ncols,nrows, h, w, c),order='F')
+                .swapaxes(1,2)
+                .reshape( w*ncols,h*nrows, c))
+    else:
+        raise Exception("Wrong Order, Choose V or H (vertical, horizontal)")
+    
 
-def grid(logdir, rows):
-    imgData = []
+
+
+def openImageList(logdir):
+    imgData = []    
     if type(logdir) is list:
         for img in logdir:
             image = Image.open(img)
             imgData.append(np.array(image.convert('RGB')))
-
-    elif(os.path.isdir(logdir)):
-        dirOrFiles = os.listdir(logdir)
-        dirOrFiles.sort()
-        #dirs inside logdir
-        if all(os.path.isdir(os.path.join(logdir,content)) for content in dirOrFiles):
-            for dir in dirOrFiles:
-                print(dir)
-                dirPath = os.path.join(logdir,dir)
-                imgInDir = os.listdir(dirPath)
-                dirImgs = [Image.open(os.path.join(dirPath,img)) for img in imgInDir]
-                dirImgsArr = [np.array(img.convert('RGB')) for img in dirImgs] #!!!!
-                imgData.extend(dirImgsArr)
-
-        #logdir
-        elif (os.path.isfile(os.path.join(logdir,file)) for file in dirOrFiles):
-            for img in dirOrFiles:
-                img = Image.open(os.path.join(logdir,img))
-                imgData.append(np.array(img.convert('RGB')))
-
     imgData = np.array(imgData)
-    grid = makeImageGrid(imgData,rows)
-    plt.imshow(grid)
-    plt.show()
+    return imgData
 
+def openImageDirectory(logdir, mode='RGB'):
+    imgData = []
+    dirOrFiles = os.listdir(logdir)
+    # dirOrFiles.sort()
+    if (os.path.isfile(os.path.join(logdir,file)) for file in dirOrFiles):
+        for img in dirOrFiles:
+            img = Image.open(os.path.join(logdir,img))
+            imgData.append(convertToArrayWithSameChannels(img,mode))
+    imgData = np.array(imgData)
+    # grid = makeSimpleGrid(imgData, size)
+    return imgData
+
+
+def convertToArrayWithSameChannels(image: Image.Image, mode):
+    data = np.array(image.convert(mode))
+    if(len(data.shape) == 2):
+        return data.reshape(data.shape[0],data.shape[1],1)
+    else: return data
+
+def sortNumerically(fileName):
+    return int(fileName.split('.')[0])
+
+def openDirsForComparison(logdir, mode='RGB'):
+    imgData = []
+    dirs = os.listdir(logdir)
+    size = 0
+
+    if all(os.path.isdir(os.path.join(logdir,content)) for content in dirs):
+        size = len(os.listdir(os.path.join(logdir, dirs[0])))
+        for dir in dirs:
+            print("In dir:", dir)
+            dirPath = os.path.join(logdir,dir)
+            imgInDir = os.listdir(dirPath)
+            if size != len(imgInDir):
+                print("All folders must have the same amount of elements.")
+                return 
+            imgInDir = sorted(imgInDir, key=sortNumerically)
+            dirImgs = [Image.open(os.path.join(dirPath,img)) for img in imgInDir]
+            dirImgsArr = [convertToArrayWithSameChannels(img,mode) for img in dirImgs]
+            imgData.extend(dirImgsArr)
+    else:
+        print("Not all content of directory is a folder")
+        return
+    imgData = np.array(imgData)
+    return imgData, size
       
 
 
 if __name__ == '__main__':
-    parser = get_parser()
-    args = parser.parse_args()
+    # parser = get_parser()
+    # args = parser.parse_args()
 
-    if args.command == 'open':
-        open(args.name, plot=args.plot)        
-    elif args.command == 'grid':
-        grid(args.imgdir,2)
+
+    # if args.command == 'open':
+    #     open(args.name, plot=args.plot)        
+    # elif args.command == 'grid':
+    
+    data = openImageDirectory('results\\LDM_4Channel_v2\\18', 'RGBA')
+    grid = makeSquareImageGrid(data)
+
+
+    #TODO: catch if images are different size. must all be same size
+    # data, size = openDirsForComparison('data\\test', 'RGB')
+    # grid = makeSimpleGrid(data, size, order='V')
+
+
+    plt.figure(figsize=(data.shape[1]/2, data.shape[2]/2))
+    plt.get_current_fig_manager().window.showMaximized()
+    plt.imshow(grid)
+    plt.tight_layout()
+    plt.show()
+

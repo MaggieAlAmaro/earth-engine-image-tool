@@ -1,0 +1,12 @@
+data_target: output\16bit-no-lines #data\1channelElevation16bit\newEurope #data\rgba\RGBA
+data_type: GS
+operations:
+  # image:
+    # - removeLines
+    # - crop
+    # - scale
+    # - tile
+    # - stdDev
+  batch:
+    # - datasetSplit
+    - histogram

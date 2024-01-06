@@ -1,6 +1,6 @@
 import json, pickle
 import datasetSplit
-
+import numpy as np
 import argparse
 
 def getParser(**parser_kwargs):
@@ -9,6 +9,13 @@ def getParser(**parser_kwargs):
     openParser = subparsers.add_parser("open", help="Convert to png")   
     openParser.add_argument('pickle_filename', type=str, help='Name of image')  
     openParser.add_argument('-min', type=int, help='Name of image',default= -32768)#-10)
+
+
+def open_pickle(filename):
+    with open(filename, 'rb') as f:
+        pixels: np.array = pickle.load(f)
+        return pixels
+
 
 if __name__ == '__main__':
     # parser = getParser()

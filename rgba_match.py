@@ -1,16 +1,9 @@
 import json, os
-from rgba import mergeRGBA, checkBounds
+from rgba_processor import mergeRGBA, checkBounds
 from utils import newFilename, makeOutputFolder
 import rasterio
 
 
-
-def toJson(filename, jsonFilename):
-    with open(filename, 'r') as f:
-        gsData = f.read()
-        gsData = gsData[:-2]    #remove newLine and last comma
-    with open(jsonFilename, 'w') as f:
-        f.write("{ \n" + gsData + "\n }")
 
 if __name__ == '__main__':
     outputDir = makeOutputFolder('separate')
@@ -47,9 +40,11 @@ if __name__ == '__main__':
         if v == currentGsV:
             if not checkBounds(os.path.join(rgbDir,k+".tif"), os.path.join(gsDir, currentGsK+".tif")):
                 print("Bounds DIFFERENT")
+                continue
             newFileName = newFilename(k+"_"+currentGsK, suffix=".png",outdir=outputDir)
             # print(os.path.join(rgbDir,currentGsK+".tif"))
             mergeRGBA(os.path.join(rgbDir,k+".tif"), os.path.join(gsDir, currentGsK+".tif"), out=newFileName)
+
     # print(grayscaleCorrespont)
 
     # with open('logs\\name_to_coordinate_dict.log', 'r') as f:

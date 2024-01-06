@@ -1,6 +1,7 @@
 removeLines:
   class: process.BlackLineRemoval
   params:
+    channel: 4
     size: [1024, 1024]
     value: 0
 crop:
@@ -21,6 +22,7 @@ tile:
 scale:
   class: process.Scale
   params:
+    channel: 4
     type: "iExp"
     min: -415
     max: 8729
@@ -33,6 +35,7 @@ rescale:
 stdDev:
   class: process.StdDevSort
   params:
+    channel: 4
     limit: 3.5  #4.5
 brightness:
   class: process.BrightnessSort
@@ -46,5 +49,6 @@ datasetSplit:
     valPercent: 0.15
 histogram:
   bit_depth: u16bit
+  # use_pickle: ""
   size: [256, 256] #[1024,1024]
   image_type: "RGBA"

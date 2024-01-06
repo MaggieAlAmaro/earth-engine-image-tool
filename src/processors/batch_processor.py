@@ -8,17 +8,14 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 from Image import MyImage
-from process import Processor
+from src.processors.process import Processor
 from utils import makeOutputFolder, newFilename
 
-# def getParser(**parser_kwargs):
-#     parser = argparse.ArgumentParser(**parser_kwargs, formatter_class=argparse.RawTextHelpFormatter)
-#     parser.add_argument('dir', type=str, help='Name of data directory') 
-#     parser.add_argument('-r','--ratio', type=float, help='Ratio of training to validation images', default=1/6) 
-#     return parser
+from Image import *
 
 class DatasetSplit(Processor):
     def __init__(self, config_args):
+        super().__init__()
         self.ratio = config_args['valPercent']
         self.shuffle = config_args['shuffle']
         self.outputDir = makeOutputFolder('datasetSplit')
@@ -33,7 +30,7 @@ class DatasetSplit(Processor):
     
     def filenameTxt(self, dataDir):
         # fn = os.path.basename(dataDir) + '.txt'
-        fn = dataDir + '.txt'
+        fn = os.path.join(self.outputDir,dataDir + '.txt')
         f = open(fn, "a")
         for filename in os.listdir(dataDir):
             f.write(filename+"\n")
@@ -115,6 +112,8 @@ class HistogramAnalysis(Processor):
         elif self.bit_depth == 'custom':
             self.pixel_range = config_args['pixel_range']   #6500
             self.min = config_args['min']                   #-10
+        else:
+            raise Exception("Bit Depth not recognized.")
 
         self.dist = np.zeros(shape=self.pixel_range) 
         self.outputDir = makeOutputFolder('histogram')
@@ -192,7 +191,7 @@ class HistogramAnalysis(Processor):
         #for normal fit
         normalDistribution = np.exp(-np.square(x-mean)/(2*(std**2))) / (np.sqrt(2*np.pi)*std)
         plt.plot(x, normalDistribution,'-',label='normal')
-        cdf = np.cumsum(normalDistribution)/len(x)
+        cdf = np.cumsum(normalDistribution)/len( x)
         plt.plot(x, cdf,'-',label='normalCdf')
 
 

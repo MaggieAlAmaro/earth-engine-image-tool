@@ -1,0 +1,108 @@
+removeLines:
+  class: src.processors.one_channel_processor.BlackLineRemoval
+  params:
+    channel: 0
+    size: [1024, 1024]
+    value: 0
+    logRowCols: False
+    countPixels: False
+    dictionary: "output\\blackLineCropDictionary-2023-12-28-11-15-05\\blackLineLog.json"
+scale:
+  class: src.processors.one_channel_processor.Scale
+  params:
+    channel: 0
+    type: "iExp"
+    min: -415
+    max: 8729
+rescale:
+  class: src.processors.one_channel_processor.Rescale
+  params:
+    channel: 0
+    type: "iExp"
+    min: 0
+    max: 255
+stdDev:
+  class: src.processors.one_channel_processor.StdDevSort
+  params:
+    channel: 0
+    limit: 3.5  #4.5
+
+
+crop:
+  class: src.processors.process.Crop
+  params:
+    size: [1024, 1024]
+tile:
+  class: src.processors.process.Tile
+  params:
+    size: [256, 256]
+8bit:
+  class: src.processors.process.To8bit
+  params:
+    min: 0
+    max: 255
+    # min: -415
+    # max: 8729
+sizeCheck:
+  class: src.processors.process.SizeCheckSort
+  params:
+    size: [1024,1024]
+    type: exact   #less
+changeMode:
+  class: src.processors.process.ChangeMode
+  params:
+    mode: L
+    format: png
+info:
+  class: src.processors.process.Info
+  params: None
+
+
+    
+
+brightness:
+  class: src.processors.rgb_processor.BrightnessSort
+  params: Null
+
+
+datasetSplit:
+  class: src.processors.batch_processor.DatasetSplit
+  params:
+    shuffle: True
+    valPercent: 0.15
+histogram:
+  class: src.processors.batch_processor.HistogramAnalysis
+  params:
+    bit_depth: s16bit
+    size: [1024, 1024] # [256, 256]
+    image_type: "GS"
+
+compare:
+  class: src.processors.two_data_processor.Compare
+  params:
+    data_target: "output\\removeLines-2023-12-28-11-17-30"
+    exitOnDifferent: False
+subtract:
+  class: src.processors.two_data_processor.Subtract
+  params:
+    data_target: "output\\removeLines-2023-12-28-11-17-30"
+
+mergeRGBA: 
+  class: src.processors.rgba_processor.MergeRGBandA
+  params: 
+    alpha_target: "data\\gs"
+separateRGBA:
+  class: src.processors.rgba_processor.SeparateRGBFromA
+  params: None
+matchRGBA:
+  class: src.processors.rgba_processor.MatchRGBA
+  params: 
+    rgb_target: ""
+    rgb_format: tif
+    # rgb_log: 
+    # a_log:
+    rgb_json: ""
+    a_json: ""
+    alpha_format: png
+
+    
