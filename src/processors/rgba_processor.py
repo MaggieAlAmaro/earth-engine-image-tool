@@ -4,9 +4,9 @@ from PIL import Image
 import os
 #import rasterio
 from Image import MyImage
-from utils import newFilename, makeOutputFolder
+from src.utils import newFilename, makeOutputFolder
 from src.processors.process import Processor
-import rasterio
+# import rasterio
 
 def getParser(**parser_kwargs):
     parser = argparse.ArgumentParser(**parser_kwargs, formatter_class=argparse.RawTextHelpFormatter)
@@ -27,10 +27,10 @@ def getParser(**parser_kwargs):
     #return mergeParser, seperateParser
     return parser
 
-def checkBounds(fileRGB, fileA):
-    img1 = rasterio.open(fileRGB)
-    img2 = rasterio.open(fileA)
-    return img1.bounds == img2.bounds
+# def checkBounds(fileRGB, fileA):
+#     img1 = rasterio.open(fileRGB)
+#     img2 = rasterio.open(fileA)
+#     return img1.bounds == img2.bounds
     
 def myLogToJsonDict(logFile, jsonFilename):
     with open(logFile, 'r') as f:
@@ -62,7 +62,7 @@ class SeparateRGBFromA(Processor):
         a.save(fna)
 
     def process(self, image: MyImage):
-        assert(image.size[2] == 4)
+        assert(image.shape[2] == 4)
         self.separateAandRGB(image.image, image.image_filename)
         
 
@@ -76,25 +76,42 @@ class MergeRGBandA(Processor):
         super().__init__()
         self.outputDir = makeOutputFolder('mergeRGBA')
         self.data_target = config_args['alpha_target']
+        if 'dictionary' in config_args:
+            with open(config_args['dictionary'], 'r') as f:
+                self.dictionary = json.load(f)
+        else:
+           self.dictionary = None
 
-    def mergeRGBandAImages(self, rgb_name, a_name) -> Image.Image:
-        assert(rgb_name.size[0] == 3 and len(a_name.size) == 2)
+    def mergeRGBandAImages(rgb_name, a_name) -> Image.Image:
         rgb = Image.open(rgb_name)
         a = Image.open(a_name)
+        assert(len(rgb.getbands()) == 3 and len(a.getbands()) == 1)
         a = a.convert('L')
         r, g, b = rgb.split()
         return Image.merge('RGBA', (r, g, b, a))
 
     def mergeRGBAImagesBatch(self, zippedData):
         for image1_name, image2_name in zippedData:
-            resultImage = self.mergeRGBandAImages(image1_name,image2_name)
+            resultImage = MergeRGBandA.mergeRGBandAImages(image1_name,image2_name)
             fnrgba = newFilename(image1_name + image2_name, suffix=".png", outdir=self.outputDir)
             resultImage.save(fnrgba)
 
 
     def process(self, data_path: str):
-        if(os.path.isdir(data_path) and os.path.isdir(self.data_target)):
-            self.mergeRGBAImagesBatch(zipData(data_path,self.data_target))
+        if self.dictionary != None:
+            for rgbImage in os.listdir(data_path):
+                rgbImgNbr = os.path.basename(rgbImage).split(".")[0]
+                if rgbImgNbr in self.dictionary: 
+                    # if os.path.basename(self.alpha_target).split(".")[0] in self.dictionary: 
+                    resultImage = MergeRGBandA.mergeRGBandAImages(os.path.join(data_path,rgbImage), os.path.join(self.data_target, str(self.dictionary[rgbImgNbr]) + ".png"))
+                    fnrgba = newFilename(rgbImgNbr + "_" + str(self.dictionary[rgbImgNbr]) , suffix=".png", outdir=self.outputDir)
+                    resultImage.save(fnrgba)
+                else:
+                    print("Image in Dictionary not found on folder!")
+                    return
+        else:
+            if(os.path.isdir(data_path) and os.path.isdir(self.data_target)):
+                self.mergeRGBAImagesBatch(zipData(data_path,self.data_target))
         
 
 
@@ -103,13 +120,21 @@ class MatchRGBA(Processor):
     def __init__(self, config_args) -> None:
         super().__init__()
         self.outputDir = makeOutputFolder('matchRGBA')
-        self.alpha_format = config_args['alpha_format']
+        self.merge = config_args['merge']
+        if self.merge:
+            self.mergeDir = os.path.join(self.outputDir, 'merge')
+            os.mkdir(self.mergeDir)
+
+        self.log = {}
+        self.logInv = {}
+        
         self.rgb_target = config_args['rgb_target']
         self.rgb_format = config_args['rgb_format']
+        self.alpha_format = config_args['alpha_format']
 
         if 'rgb_log' in config_args:
             self.jsonFolder = makeOutputFolder('logToJson')
-            self.rgb_json = os.path.join(self.jsonFolder, 'rgb')
+            self.rgb_json = os.path.join(self.jsonFolder, 'rgb.json')
             myLogToJsonDict(config_args['rgb_log'],self.rgb_json)
         else:
             self.rgb_json = config_args['rgb_json']
@@ -117,11 +142,11 @@ class MatchRGBA(Processor):
         if 'a_log' in config_args:
             if not hasattr(self, 'jsonFolder'):
                 self.jsonFolder = makeOutputFolder('logToJson')
-            self.a_json = os.path.join(self.jsonFolder, 'a')
+            self.a_json = os.path.join(self.jsonFolder, 'a.json')
             myLogToJsonDict(config_args['a_log'],self.a_json)
         else:
             self.a_json = config_args['a_json']
-            
+
 
 
     def matchWithJson(self, data_path):
@@ -150,20 +175,28 @@ class MatchRGBA(Processor):
                 currentAlphaK, currentAlphaV  = next(alphaIter)
             
             if v == currentAlphaV:
-                rgbFile = os.path.join(self.rgb_target, rgbK + self.rgb_format)
-                aFile = os.path.join(data_path, currentAlphaK + self.alpha_format)
-                if self.rgb_format == ".tif" and  self.alpha_format == ".tif" :
-                    if not checkBounds(rgbFile,aFile):
-                        print("Bounds DIFFERENT")
-                        continue
-                resultImage = MergeRGBandA.mergeRGBandAImages(rgbFile, aFile)
-                fn = newFilename(rgbK+"_"+currentAlphaK, suffix=".png",outdir=self.outputDir)
-                resultImage.save(fn)
-                # print(os.path.join(rgbDir,currentGsK+".tif"))
+                self.log[currentAlphaK] = rgbK
+                self.logInv[rgbK] = currentAlphaK
+                # if self.rgb_format == ".tif" and  self.alpha_format == ".tif" :
+                #     if not checkBounds(rgbFile,aFile):
+                #         print("Bounds DIFFERENT")
+                #         continue
+                
+                if self.merge:
+                    rgbFile = os.path.join(self.rgb_target, rgbK + "." + self.rgb_format)
+                    aFile = os.path.join(data_path, currentAlphaK + "." + self.alpha_format)
+                    resultImage = MergeRGBandA.mergeRGBandAImages(rgbFile, aFile)
+                    fn = newFilename(rgbK+"_"+currentAlphaK, suffix=".png",outdir=self.mergeDir)
+                    resultImage.save(fn)
+                    # print(os.path.join(rgbDir,currentGsK+".tif"))
 
         
 
     def process(self, data_path: str):
         self.matchWithJson(data_path)
+        with open(os.path.join(self.outputDir,"matchAtoRGB.json"), 'w') as f:
+            f.write(json.dumps(self.log, indent=4))
+        with open(os.path.join(self.outputDir,"matchRGBtoA.json"), 'w') as f:
+            f.write(json.dumps(self.logInv, indent=4))
 
         

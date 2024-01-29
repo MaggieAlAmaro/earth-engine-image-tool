@@ -8,7 +8,7 @@ from src.processors.process import Processor
 # import albumentations
 # from albumentations import RandomRotate90
 
-from utils import newFilename, makeOutputFolder
+from src.utils import newFilename, makeOutputFolder
 
 
 
@@ -28,20 +28,17 @@ class StdDevSort(Processor):
 
     def stdDev(self, data):
         stdD = np.std(data)
+        print(stdD)
         return self.bDir if stdD < self.limit else self.aDir
         
     def process(self, image: MyImage):
-        if (len(image.size) == 2):
-            img = image.data
-        else:
-            assert(image.size[0] > self.channel)
-            img = image.data[self.channel]
-        resultOutDir = self.stdDev(img)
+        data = image.data[self.channel]
+        resultOutDir = self.stdDev(data)
         fn = newFilename(image.image_filename, suffix=".png", outdir=resultOutDir)
         image.image.save(fn)
     
     def getOutputFolder(self) -> str:
-        return os.path.join(self.getOutputFolder(),'above') 
+        return os.path.join(self.outputDir,'above') 
 
 
 
@@ -58,6 +55,8 @@ class BlackLineRemoval(Processor):
         if 'dictionary' in config_args:
             with open(config_args['dictionary'], 'r') as f:
                 self.dictionary = json.load(f)
+            with open(config_args['dictionaryRGBtoAMatch'], 'r') as f:
+                self.dictionaryMatch = json.load(f)
         else:
            self.dictionary = None
 
@@ -66,7 +65,6 @@ class BlackLineRemoval(Processor):
         self.logRowCols = config_args['logRowCols']
         if self.logRowCols:
             self.log = {}
-            #make log
             
         self.channel = config_args['channel']
         self.outputDir = makeOutputFolder('removeLines')
@@ -122,23 +120,30 @@ class BlackLineRemoval(Processor):
 
         print("Line Crop Measures:", (col0Clip, row0Clip, size[1] - col1Clip, size[0] - row1Clip))
         if self.logRowCols:
-            self.log[filename] = [col0Clip, row0Clip, size[1] - col1Clip, size[0] - row1Clip]
+            self.log[filename.split(".")[0]] = [col0Clip, row0Clip, size[1] - col1Clip, size[0] - row1Clip]
 
         return (col0Clip, row0Clip, size[1] - col1Clip, size[0] - row1Clip)
 
         
     def process(self, image: MyImage):
-        if (len(image.size) == 2):
+        if (len(image.shape) == 2):
             img = image.data
         else:
-            assert(image.size[0] > self.channel)
+            assert(image.shape[0] > self.channel)
             img = image.data[self.channel]
 
 
         if self.dictionary != None:
-            resultCropSize = self.dictionary[os.path.basename(image.image_filename)]
+            if os.path.basename(image.image_filename).split(".")[0] in self.dictionaryMatch: 
+                if  self.dictionaryMatch[os.path.basename(image.image_filename).split(".")[0]] in self.dictionary:
+                    resultCropSize = self.dictionary[ self.dictionaryMatch[os.path.basename(image.image_filename).split(".")[0]] ]
+                else:
+                    return
+            else:
+                return
         else:
-            resultCropSize = self.getCropForBlackLines(img, image.size,os.path.basename(image.image_filename))
+            resultCropSize = self.getCropForBlackLines(img, image.shape,os.path.basename(image.image_filename))
+
         croppedImage = image.image.crop(resultCropSize)
         fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
         croppedImage.save(fn)
@@ -158,15 +163,19 @@ class Rescale(Processor):
         super().__init__()
         self.channel = config_args['channel']
         self.typeT = config_args['type']
+        if(self.typeT == 'iExp'):
+            self.mean = config_args['mean']
+        self.typeT = config_args['type']
         self.min = config_args['min']
         self.max = config_args['max']
         self.outputDir = makeOutputFolder(self.typeT+'_rescale')
 
     
-    def myReverseInverseExponential(arr, mean=0.11549015741807088):
-        return -mean * np.log(-arr + 1)
+    def myReverseInverseExponential(self, arr):
+        return -self.mean * np.log(-arr + 1)
     
-    
+    def ExponentialCDF(self, arr):
+        return 1 - np.exp(-(1/self.mean) * arr)
 
     def rescale(self, data):
         normalizedData = (data - self.min)/(self.max-self.min)          # Normalize [0,1]
@@ -176,7 +185,7 @@ class Rescale(Processor):
         elif (self.typeT == 'sqrt'):
             scalingFunction = np.square
         elif (self.typeT == 'iExp'):
-            scalingFunction = np.vectorize(self.myReverseInverseExponential)
+            scalingFunction = np.vectorize(self.ExponentialCDF)
         
         rescaledData = scalingFunction(normalizedData) #* (maxOriginal - minOriginal) + minOriginal
 
@@ -188,7 +197,7 @@ class Rescale(Processor):
 
 
     def process(self, image: MyImage):
-        assert(image.size[0]>self.channel)
+        assert(image.shape[0]>self.channel)
         result = self.rescale(image.data[self.channel])
         updatedImage = image.post_process_step(processedData=result)
         fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
@@ -201,13 +210,14 @@ class Scale(Processor):
         super().__init__()
         self.channel = config_args['channel']
         self.typeT = config_args['type']
+        if(self.typeT == 'iExp'):
+            self.mean = config_args['mean']
         self.min = config_args['min']
         self.max = config_args['max']
         self.outputDir = makeOutputFolder(self.typeT+'_scale')
 
-    def myInverseExponential(self, arr, mean=0.11549015741807088):
-        return -np.exp(-(1/mean)*arr) + 1
-
+    def ExponentialCDF(self, arr):
+        return 1 - np.exp(-(1/self.mean) * arr)
 
     def scale(self, data):
         #Push data to > 0
@@ -223,7 +233,7 @@ class Scale(Processor):
         elif (self.typeT == 'sqrt'):
             scalingFunction = np.sqrt
         elif (self.typeT == 'iExp'):
-            scalingFunction = np.vectorize(self.myInverseExponential)
+            scalingFunction = np.vectorize(self.ExponentialCDF)
         
         scaledNormData = scalingFunction(normalizedData)
 
@@ -232,14 +242,16 @@ class Scale(Processor):
         return bit8ScaledData
 
     def process(self, image: MyImage):
-        if (len(image.size) == 2):
+        if (len(image.shape) == 2):
             img = image.data
         else:
-            assert(image.size[0] > self.channel)
+            assert(image.shape[0] > self.channel)
             img = image.data[self.channel]
         result = self.scale(img)
-        updatedImage = image.post_process_step(processedData=result)
+        imggg = Image.fromarray(result)
+
+        # updatedImage = image.post_process_step(processedData=result)
         fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
-        updatedImage.save(fn)
+        imggg.save(fn)
         
 

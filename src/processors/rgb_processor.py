@@ -53,8 +53,8 @@ class BrightnessSort(Processor):
         
     def process(self, image: MyImage):
         # only for rgb or rgba images
-        assert(len(image.size) > 2)
-        resultOutDir = self.sortToDir(image.data[:2], image.size)
+        assert(len(image.shape) > 2)
+        resultOutDir = self.sortToDir(image.data[:2], image.shape)
         fn = newFilename(image.image_filename, suffix=".png", outdir=resultOutDir)
         image.image.save(fn)
 

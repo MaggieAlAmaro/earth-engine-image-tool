@@ -10,16 +10,21 @@ from abc import ABC, abstractmethod
 # import albumentations
 # from albumentations import RandomRotate90
 
-from utils import processDirOrFile, newFilename, makeOutputFolder
+from src.utils import processDirOrFile, newFilename, makeOutputFolder
 
 from src.processors.process import Processor
 
 from Image import *
 
+def sortNumerically(fileName):
+    return int(os.path.basename(fileName).split('.').split('_')[1])
+
 
 def zipData(data_path1, data_path2):
     img1WPath = [os.path.join(data_path1, file) for file in os.listdir(data_path1)]
     img2WPath = [os.path.join(data_path2, file) for file in os.listdir(data_path2)]
+    # img1WPath = sorted(img1WPath, key=sortNumerically)
+    # img2WPath = sorted(img2WPath, key=sortNumerically)
     return zip(img1WPath,img2WPath)
 
 
@@ -28,6 +33,8 @@ class Subtract(Processor):
         super().__init__()
         self.mean = []
         self.data_target = config_args['data_target']
+        self.channels_to_compare = config_args['channels_to_compare']
+        self.nbr_channels = config_args['nbr_channels']
         # self.outputDir = makeOutputFolder('subtract')
 
 
@@ -37,9 +44,24 @@ class Subtract(Processor):
             img2 = Image.open(image2_path)
             data1 = np.array(img1)
             data2 = np.array(img2)
-            #result = abs(data1 - data2)
-            #img = Image.fromarray(result)
-            mse = (np.square(data1 - data2)).mean()
+            if(self.nbr_channels==1):
+                mse = (np.square(data1-data2)).mean()
+            else:
+                data1 = np.transpose(data1, (2,0,1))
+                data2 = np.transpose(data2, (2,0,1))
+                mse = 0
+                for channel in self.channels_to_compare:
+                    mse += (np.square(data1[channel]-data2[channel])).mean()
+                mse = mse/len(self.channels_to_compare)
+
+            #TODO: this here below
+            #np.concatenate(([data1[ch] for ch in self.channels_to_compare]),axis=1)
+
+            # r,g,b,a1 = img1.split()
+            # r,g,b,a2 = img2.split()
+            # a1= np.array(a1)
+            # a2= np.array(a2)
+            # print(data1[3])
             #print("MSE:", mse)
             self.mean.append(mse)
 
@@ -52,7 +74,6 @@ class Subtract(Processor):
         else:
             raise Exception("Can only compare directories.")
     
-
 
 
 class Compare(Processor):

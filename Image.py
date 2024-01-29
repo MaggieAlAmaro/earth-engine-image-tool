@@ -9,9 +9,12 @@ class MyImage(ABC):
         self.image_filename = image_filename
         self.image = Image.open(image_filename)
         self.data = np.array(self.image)
-        self.size = self.data.shape #self.image.size -> is backwards
+        if(len(self.data.shape) == 2):  #if its one channel
+            self.data =self.data[...,np.newaxis]
+        self.shape = self.data.shape 
+        self.data = np.transpose(self.data, (2,0,1))   
 
-    @abstractmethod
+    # @abstractmethod
     def post_process_step(self, processedData=None) -> Image: 
         pass
         
@@ -36,7 +39,7 @@ class GrayscaleImage(MyImage):
 
 
 class RGBAImage(MyImage):
-    def __init__(self, image_filename, proccessA=False) -> None:
+    def __init__(self, image_filename, proccessA=True) -> None:
         super().__init__(image_filename)
         #rgba.separateAandRGB(image_filename)
         self.r, self.g, self.b, self.a = self.image.split()

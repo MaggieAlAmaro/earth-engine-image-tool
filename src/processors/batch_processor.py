@@ -7,11 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from Image import MyImage
+# from Image import str
 from src.processors.process import Processor
-from utils import makeOutputFolder, newFilename
+from src.utils import makeOutputFolder, newFilename
 
-from Image import *
 
 class DatasetSplit(Processor):
     def __init__(self, config_args):
@@ -88,11 +87,108 @@ class DatasetSplit(Processor):
         fv.close()
 
 
-    def process(self, image: MyImage or str):
+    def process(self, image: str):
         fn = self.createFilenameTxt(image)
         if fn != None:
             self.splitIntoTrainValidationTxt(fn, self.ratio)
 
+
+class Histogram():
+    def __init__(self, size, pixel_range, min, distribution, bit_depth=None):
+        self.size = size
+
+        self.bit_depth = bit_depth
+        self.pixel_range = pixel_range
+        self.min = min
+
+        self.dist = distribution
+        # self.outputDir = makeOutputFolder('histogram')
+
+    def calculateSuplementaryInfo(self):
+        firstNonZeroIndex = np.nonzero(self.dist)[0][0] #(np.where(x > 1)[0][0]) 
+        LastNonZeroIndex = np.nonzero(self.dist)[0][-1]
+
+        #get smaller distribution (The more indexes on the x axis the longer it takes for it to load)
+        self.compressedDist = self.dist[firstNonZeroIndex:LastNonZeroIndex]
+
+        
+        #set indexes, i.e the x axis values to be from firstNonZeroIndex to LastNonZeroIndex.
+        index = np.arange((firstNonZeroIndex + self.min), (LastNonZeroIndex + self.min), 1) #np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)
+        # set indexes to be positive 
+        index = index + abs( (firstNonZeroIndex + self.min))
+        # set indexes to [0,1]
+        self.index = index/len(index) 
+
+        self.n = np.sum(self.compressedDist )
+        self.mean = np.dot(self.compressedDist ,self.index)/self.n
+        print("Mean:", self.mean)
+        self.std = np.sqrt(np.sum(self.compressedDist * np.square(self.index-self.mean))/self.n)
+        print("Std:", self.std)
+        print("Max Value:", np.max(self.compressedDist))
+
+        print("Total Probability", np.sum(self.compressedDist))
+        missing = 1 - np.sum(self.compressedDist)
+        self.compressedDist += missing/len(self.compressedDist)
+        print("Total Probability", np.sum(self.compressedDist))
+
+    def plotDistribution(self, outputDir=None):
+        # normalizedData = (x - firstNonZeroIndex)/(LastNonZeroIndex-firstNonZeroIndex)  
+
+        #Confirmation
+        # new = []
+        # for i in range(0,len(x)):
+        #     gugu = np.zeros(int(x[i]))
+        #     gugu.fill(index[i])
+        #     new.extend(gugu)
+        # std = np.std(new)
+        # mean = np.mean(new)
+        # print("Std2:",std)
+        # print("Mean2:",mean)      
+
+
+        # scaled = (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(arr-mean)/(2*(std**2))) * interval)
+        # plt.plot(index, scaled,'--')
+        
+
+        plt.plot(self.index, self.compressedDist,'--', label='distribution')
+        # plt.bar(index,x,color="blue", width=1)
+        plt.legend(loc="upper right")
+        if(outputDir != None):
+            file = newFilename('distribution', suffix='.png', outdir=outputDir)
+            plt.savefig(file)
+        plt.show()
+        
+
+    def fitDistributions(self, outputDir=None):
+        n_points = 2000
+
+        plt.plot(self.index, self.compressedDist,'-', label='distribution')
+        #arr = arr/np.max(arr)     #normalize
+        
+        x = np.linspace(0,1, n_points)
+        x99 = np.linspace(self.mean - 5*self.std, self.mean + 5*self.std, n_points)  # > 100 of dist 
+
+        #for normal fit
+        normalDistribution = np.exp(-np.square(x99-self.mean)/(2*(self.std**2))) / (np.sqrt(2*np.pi)*self.std)
+        plt.plot(x99, normalDistribution,'-',label='normal')
+        dx = ((self.mean + 5*self.std) -(self.mean - 5*self.std))/n_points
+        cdf = np.cumsum(normalDistribution) * dx
+        plt.plot(x99, cdf,'-',label='normal Cdf')
+
+
+        #for exponential fit
+        lmbda = 1/self.mean
+        exp = lmbda * np.exp(-lmbda * x)
+        expCdf = 1 - np.exp(-lmbda * x)
+        expNorm = np.exp(-lmbda * x)
+        plt.plot(x, exp,'--', label='exp')
+        plt.plot(x, expCdf,'--', label='exp Cdf')
+        plt.plot(x, expNorm,'-', label='exp Normalized')
+        plt.legend(loc="upper right")
+        if(outputDir != None):
+            file = newFilename('fit', suffix='.png', outdir=outputDir)
+            plt.savefig(file)
+        plt.show()
 
 class HistogramAnalysis(Processor):
     def __init__(self, config_args):
@@ -110,8 +206,8 @@ class HistogramAnalysis(Processor):
             self.pixel_range = 256
             self.min = 0
         elif self.bit_depth == 'custom':
-            self.pixel_range = config_args['pixel_range']   #6500
-            self.min = config_args['min']                   #-10
+            self.pixel_range = config_args['pixel_range']   ##6500
+            self.min = config_args['min']                   ##-10
         else:
             raise Exception("Bit Depth not recognized.")
 
@@ -119,91 +215,7 @@ class HistogramAnalysis(Processor):
         self.outputDir = makeOutputFolder('histogram')
 
 
-    def plotAndSaveImagePixelDist(self):
-        firstNonZeroIndex = np.nonzero(self.dist)[0][0] #(np.where(x > 1)[0][0]) 
-        LastNonZeroIndex = np.nonzero(self.dist)[0][-1]
-        #get smaller distribution (The more indexes on the x axis the longer it takes for it to load)
-        arr = self.dist[firstNonZeroIndex:LastNonZeroIndex]
 
-        #set indexes to be from firstNonZeroIndex to LastNonZeroIndex.
-        index = np.arange((firstNonZeroIndex + self.min), (LastNonZeroIndex + self.min), 1) #np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)
-        
-        #set indexes to be positive 
-        index = index+abs( (firstNonZeroIndex + self.min))
-        #set indexes to [0,1]
-        index = index/len(index) 
-
-        n = np.sum(arr)
-        mean = np.dot(arr,index)/n
-        print("Mean:",mean)
-        std = np.sqrt(np.sum(arr*np.square(index-mean))/n)
-        print("Std:",std)
-
-        # normalizedData = (x - firstNonZeroIndex)/(LastNonZeroIndex-firstNonZeroIndex)  
-        print("Max Value:", np.max(arr))
-
-
-        #Confirmation
-        # new = []
-        # for i in range(0,len(x)):
-        #     gugu = np.zeros(int(x[i]))
-        #     gugu.fill(index[i])
-        #     new.extend(gugu)
-        # std = np.std(new)
-        # mean = np.mean(new)
-        # print("Std2:",std)
-        # print("Mean2:",mean)      
-
-
-
-        # scaled = (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(arr-mean)/(2*(std**2))) * interval)
-        # plt.plot(index, scaled,'--')
-        
-
-        plt.plot(index, arr,'--', label='distribution')
-        plt.legend(loc="upper right")
-        file = newFilename('distribution', suffix='.png', outdir=self.outputDir)
-        plt.savefig(file)
-        plt.show()
-        return mean,std
-        # plt.bar(index,x,color="blue", width=1)
-        # plt.show()
-
-    def plotFitDistributions(self, mean, std):
-        firstNonZeroIndex = np.nonzero(self.dist)[0][0] #(np.where(x > 1)[0][0]) 
-        LastNonZeroIndex = np.nonzero(self.dist)[0][-1]
-        #get smaller distribution (The more indexes on the x axis the longer it takes for it to load)
-        arr = self.dist[firstNonZeroIndex:LastNonZeroIndex]
-
-        #set indexes to be from firstNonZeroIndex to LastNonZeroIndex.
-        index = np.arange((firstNonZeroIndex + self.min), (LastNonZeroIndex + self.min), 1) #np.argmax(x),1)#-32768,32767,1)#np.argmin(x),np.argmax(x),1)
-        
-        #set indexes to be positive 
-        index = index+abs( (firstNonZeroIndex + self.min))
-        #set indexes to [0,1]
-        index = index/len(index) 
-        plt.plot(index, arr,'-', label='distribution')
-        #arr = arr/np.max(arr)     #normalize
-        
-        x = np.linspace(0, 1, 100)
-        x99 = np.linspace(mean - 3*std, mean + 3*std, 100)
-
-        #for normal fit
-        normalDistribution = np.exp(-np.square(x-mean)/(2*(std**2))) / (np.sqrt(2*np.pi)*std)
-        plt.plot(x, normalDistribution,'-',label='normal')
-        cdf = np.cumsum(normalDistribution)/len( x)
-        plt.plot(x, cdf,'-',label='normalCdf')
-
-
-        #for exponential fit
-        lmbda = 1/mean
-        exp = lmbda* np.exp(-lmbda * x)
-        expNorm = np.exp(-lmbda * x)
-        plt.plot(x, exp,'--', label='exp')
-        plt.plot(x, expNorm,'-', label='expNorm')
-        file = newFilename('fit', suffix='.png', outdir=self.outputDir)
-        plt.savefig(file)
-        plt.show()
   
     def flippedExponential(x, mean, std):
         return (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(x-mean)/(2*(std**2))))
@@ -216,28 +228,28 @@ class HistogramAnalysis(Processor):
             "Min Value At index" : str(np.argmin(self.dist)),
             "Min Value" : str(np.min(self.dist)),
             "First Non-zero Value at index" : str(np.where(self.dist > 0)[0][0]),
-            "-in int16 index": str((np.where(self.dist > 0)[0][0]) + self.min),
+            "   In int16 index": str((np.where(self.dist > 0)[0][0]) + self.min),
+            " Last int16 index": str(np.nonzero(self.dist)[0][-1] + self.min),
             "Last Non-zero Value at index " : str(np.nonzero(self.dist)[0][-1]),
-            "-in int16 index" : str(np.nonzero(self.dist)[0][-1] + self.min)
-              }
+            "Mean" : self.histogram.mean,
+            "Standard Deviation": self.histogram.std,
+            }
         return info
 
-    def save_info(self, mean, std):
+    def save_info(self):
         info = self.pixelDistInfo()
-        
-        info['mean'] = mean
-        info['std'] = std
-        print(json.dumps(info, indent=4))
+        print(info)
+        # print(json.dumps(info, indent=4))
         file = newFilename('info', suffix='.json', outdir=self.outputDir) 
         with open(file, 'w') as f: 
-            f.write(json.dumps(info))
+            f.write(json.dumps(info, indent=4))
 
     def save_pickle(self, pickleName):
-        file = newFilename(pickleName, suffix='.pickle', outdir=self.outputDir) 
+        fileName = newFilename(pickleName, suffix='.pickle', outdir=self.outputDir) 
         #mode = 'ab' if os.path.isfile(file) else 'wb'
-        with open(file, 'wb') as f:
-            print("Saving pickled error data...")
-            pickle.dump(self.dist, f)
+        with open(fileName, 'wb') as f:
+            print("Saving pickled Histogram object...")
+            pickle.dump(self.histogram, f)
 
   
     def addPixelValues(self, image, totalPixels):
@@ -248,19 +260,34 @@ class HistogramAnalysis(Processor):
         for row in data:
             for pixelValue in row: 
                 #if self.x[pixelValue - self.min] < 999999999999 :
-                self.dist[pixelValue - self.min] += 1/totalPixels
+                # self.dist[pixelValue - self.min] += 1/totalPixels
+                self.dist[pixelValue - self.min] += 1
         
 
-    def process(self, image: MyImage or str):
+    def process(self, image: str):
         totalPixels = len(os.listdir(image)) * self.size[0] * self.size[1]
         for i in os.listdir(image):
             self.addPixelValues(os.path.join(image,i), totalPixels)
 
-        mean,std = self.plotAndSaveImagePixelDist()
-        self.plotFitDistributions(mean,std)
-        self.save_pickle('time')
-        self.save_info(mean,std)
+        self.histogram = Histogram(self.size, self.pixel_range, self.min, self.dist ,self.bit_depth)
+        self.histogram.calculateSuplementaryInfo()
+
+        self.histogram.plotDistribution(self.outputDir)
+        self.histogram.fitDistributions(self.outputDir)
+        self.save_pickle('histogram')
+        self.save_info()
+
+
+
+def openHistogramPickle(filename) -> Histogram:
+    with open(filename, 'rb') as f:
+        hist: Histogram = pickle.load(f)
+        return hist
 
 
 
 
+if __name__ == '__main__':
+    hist = openHistogramPickle("output\\histogram-2024-01-24-21-01-32\\histogram.pickle")
+    hist.plotDistribution(save=False)
+    hist.fitDistributions(save=False)

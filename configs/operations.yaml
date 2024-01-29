@@ -1,8 +1,28 @@
-data_target: results\LDM_4Channel_v2\18v2 #data\1channelElevation16bit\newEurope #data\rgba\RGBA
-data_type: RGBA
+data_target: D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGBA\stdDev-2024-01-26-15-05-11\above
+
+# D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGBA\mergeRGBA-2024-01-26-11-34-39
+
+#D:\StableDiffusion\Datasets\earth-engine-image-tool\output\stdDev-2024-01-25-12-09-13\above
+#D:\StableDiffusion\stable-diffusion-terrain\logs\2024-01-19T10-44-52_RGBA_Loss_autoencoder_kl_64x64x4\samples\2024-01-24-16-05-13\img\in
+
+# Testing
+#D:\StableDiffusion\Datasets\earth-engine-image-tool\tests\16bitGrayscale
+#D:\StableDiffusion\Datasets\earth-engine-image-tool\tests\Mean0.08ExponentScaling
+#D:\StableDiffusion\Datasets\earth-engine-image-tool\tests\comparison\AlphaFromRGBAImage 
+# D:\StableDiffusion\Datasets\earth-engine-image-tool\tests\comparison\OriginalAlphaImage
+
+# Full Datasets
+# data\RGB\ThirdBatch\EuropeRGB
+# D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGB\crop-2024-01-26-09-58-11
+
+
+#D:\StableDiffusion\Datasets\earth-engine-image-tool\output\GRAYSCALE_TREATED\crop-2023-12-14-23-07-31 
+#data\1channelElevation16bit\newEurope  
+
+data_type: GS
 operations:
-  image:
-    # - removeLines
+  # image:
+  #   - removeLines
     # - crop
     # - scale
     # - tile
@@ -10,10 +30,11 @@ operations:
     # - sizeCheck
     # - changeMode
     # - info
-    - separateRGBA
-  # batch:
-    # - mergeRGBA
+    # - separateRGBA
+  batch:
+  #   - mergeRGBA
+    # - matchRGBA
     # - subtract
     # - compare
-    # - datasetSplit
-    # - histogram
+    - datasetSplit
+    # - makeHistogram

@@ -10,10 +10,11 @@ import importlib
 from src.processors.process import Processor
 from src.processors.batch_processor import DatasetSplit, HistogramAnalysis
 
-from Image import MyImage
 # from abc import ABC, abstractmethod
 # import numpy as np
  
+from Image import MyImage
+
 
 '''
 def getParser(**parser_kwargs):
@@ -95,10 +96,10 @@ def getParser(**parser_kwargs):
 ''' 
 
 class ImageProcessingFacade():
-    def __init__(self, image_directory, processes: Dict[str,Processor], imageType: MyImage) -> None:
+    def __init__(self, image_directory, processes: Dict[str,Processor]) -> None:
         self.image_directory = image_directory
         self.processes = processes
-        self.imageType = imageType
+
 
     def getFiles(self):
         return os.listdir(self.image_directory)
@@ -107,7 +108,7 @@ class ImageProcessingFacade():
     def processImage(self, processor: Processor):
         for filename in os.listdir(self.image_directory):
             f = os.path.join(self.image_directory, filename)
-            imgObj = self.imageType(f)
+            imgObj = MyImage(f)
             processor.process(imgObj)
         
     def processBatch(self, processor: Processor):
@@ -164,7 +165,7 @@ if __name__ == '__main__':
             factoriesDict[op] = _class(config[op]['params'])#**config[op].get('params',dict())) 
     
     if os.path.isdir(ops['data_target']):
-        ipf = ImageProcessingFacade(ops['data_target'], factoriesDict, imgType)
+        ipf = ImageProcessingFacade(ops['data_target'], factoriesDict)
         if 'image' in ops['operations']:
             ipf.conductAllImageOperations(ops['operations']['image'])
         if 'batch' in ops['operations']:

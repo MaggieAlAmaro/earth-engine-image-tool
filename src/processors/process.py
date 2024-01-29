@@ -1,6 +1,6 @@
 import numpy as np
 from PIL import Image
-import rasterio
+# import rasterio
 from itertools import product
 import os, sys, math
 from abc import ABC, abstractmethod
@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 
 from Image import *
-from utils import newFilename, makeOutputFolder
+from src.utils import newFilename, makeOutputFolder
 
 
 
@@ -42,7 +42,7 @@ class Crop(Processor):
 
     def process(self, image: MyImage):
         try:
-            cropBounds = self.crop(image.size)
+            cropBounds = self.crop(image.shape)
         except:
             return
         croppedImg = image.image.crop(cropBounds)
@@ -72,7 +72,7 @@ class Tile(Processor):
         # except Exception as e:
         #     print(e)
         #     return 
-        cropList = self.tile(image.size)
+        cropList = self.tile(image.shape)
         for crop in cropList:
             fn = newFilename(image.image_filename, suffix=f"_{crop[1]}_{crop[0]}.png", outdir=self.outputDir)
             image.image.crop(crop).save(fn) 
@@ -193,7 +193,7 @@ class SizeCheckSort(Processor):
         
     
     def process(self, image: MyImage):
-        resultOutDir = self.sizeCheck(image.size)
+        resultOutDir = self.sizeCheck(image.shape)
         fn = newFilename(image.image_filename, suffix=".png", outdir=resultOutDir)
         image.image.save(fn)
 
