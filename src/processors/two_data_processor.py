@@ -83,7 +83,18 @@ class Compare(Processor):
         self.exitOnDifferent = config_args['exitOnDifferent']
         self.areAllSame = True
 
-    def compareImage(self, image1, image2):
+    def compareData(data1, data2):
+        if(data1.shape != data2.shape):
+            print("The image shapes don't match")
+            return False      
+        elif((data1 == data2).all()):
+            print("The images are EQUAL.")
+            return True
+        else:
+            print("The images are NOT equal.")
+            return False
+
+    def compareImage(image1, image2):
         img1 = Image.open(image1)
         img2 = Image.open(image2)
         data1 = np.array(img1)
@@ -100,7 +111,7 @@ class Compare(Processor):
 
     def compareImages(self, zippedData):
         for image1, image2 in zippedData:
-            same = self.compareImage(image1, image2)
+            same = Compare.compareImage(image1, image2)
             if not same: self.areAllSame = False 
             if not same and self.exitOnDifferent:
                 return

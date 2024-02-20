@@ -28,7 +28,21 @@ stdDev:
   params:
     channel: 3
     limit: 3.5  #4.5
+edges:
+  class: src.processors.one_channel_processor.EdgeDetection
+  params:
+    channel: 0
+    
+kMeans:
+  class: src.processors.one_channel_processor.KMeansSegmentation
+  params:
+    channel: 0
+    k: 4
 
+medianDenoise:
+  class: src.processors.one_channel_processor.MedianDenoise
+  params:
+    channel: 0
 
 crop:
   class: src.processors.process.Crop
@@ -98,9 +112,11 @@ subtract:
   class: src.processors.two_data_processor.Subtract
   params:
     channels_to_compare: [0,1,2]
-    nbr_channels: 3
-    data_target:  D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGB\crop-2024-01-07-18-22-14
+    nbr_channels: 4
+    data_target:  C:\Users\Margarida\OneDrive - Universidade de Lisboa\Desktop\Logs\img\re
     #D:\StableDiffusion\stable-diffusion-terrain\logs\2024-01-19T10-44-52_RGBA_Loss_autoencoder_kl_64x64x4\samples\2024-01-24-16-05-13\img\re
+
+
 
 mergeRGBA: 
   class: src.processors.rgba_processor.MergeRGBandA
@@ -122,5 +138,3 @@ matchRGBA:
     #a_json: logs\europeElevationLogs\gs.json
     alpha_format: png
 
-
-    

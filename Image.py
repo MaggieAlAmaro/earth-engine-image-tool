@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import typing
 
+
 class MyImage(ABC):
     def __init__(self, image_filename) -> None:
         self.image_filename = image_filename
@@ -14,7 +15,6 @@ class MyImage(ABC):
         self.shape = self.data.shape 
         self.data = np.transpose(self.data, (2,0,1))   
 
-    # @abstractmethod
     def post_process_step(self, processedData=None) -> Image: 
         pass
         

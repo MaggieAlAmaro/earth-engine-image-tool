@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 # from Image import str
-from src.processors.process import Processor
 from src.utils import makeOutputFolder, newFilename
+from process import Processor
 
 
 class DatasetSplit(Processor):

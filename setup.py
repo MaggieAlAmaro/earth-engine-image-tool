@@ -7,6 +7,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'numpy',
-        'PIL'
+        # 'PIL'
     ],
 )

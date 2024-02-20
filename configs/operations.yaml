@@ -1,4 +1,5 @@
-data_target: D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGBA\stdDev-2024-01-26-15-05-11\above
+data_target: data\captionDatasetTest\island
+#D:\StableDiffusion\Datasets\earth-engine-image-tool\tests\16bitGrayscale
 
 # D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGBA\mergeRGBA-2024-01-26-11-34-39
 
@@ -19,10 +20,13 @@ data_target: D:\StableDiffusion\Datasets\earth-engine-image-tool\output\RGBA\std
 #D:\StableDiffusion\Datasets\earth-engine-image-tool\output\GRAYSCALE_TREATED\crop-2023-12-14-23-07-31 
 #data\1channelElevation16bit\newEurope  
 
-data_type: GS
+data_type: RGBA
 operations:
-  # image:
-  #   - removeLines
+  image:
+    # - edges
+    # - kMeans
+    # - medianDenoise
+    # - removeLines
     # - crop
     # - scale
     # - tile
@@ -30,11 +34,11 @@ operations:
     # - sizeCheck
     # - changeMode
     # - info
-    # - separateRGBA
-  batch:
+    - separateRGBA
+  # batch:
   #   - mergeRGBA
     # - matchRGBA
     # - subtract
     # - compare
-    - datasetSplit
+    # - datasetSplit
     # - makeHistogram

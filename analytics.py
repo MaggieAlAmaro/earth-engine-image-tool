@@ -150,11 +150,6 @@ def function(x, mean, std):
     return (np.sqrt(2*np.pi)*std)/(np.exp(-np.square(x-mean)/(2*(std**2))))
 
 
-def open_pickle(filename):
-    with open(filename, 'rb') as f:
-        pixels: np.array = pickle.load(f)
-        return pixels
-
 
 
 def save_pickle(data):

@@ -1,7 +1,7 @@
 #import rasterio
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 from Image import *
 import os, json
 from src.processors.process import Processor
@@ -205,6 +205,8 @@ class Rescale(Processor):
 
 
 
+
+
 class Scale(Processor):
     def __init__(self, config_args):
         super().__init__()
@@ -255,3 +257,104 @@ class Scale(Processor):
         imggg.save(fn)
         
 
+
+class EdgeDetection(Processor):
+    def __init__(self, config_args):
+        super().__init__()
+        self.channel = config_args['channel']
+        self.outputDir = makeOutputFolder('edge_detection')
+
+
+    def process(self, image: MyImage):
+        newImg = image.data[self.channel]
+        pilImg = Image.fromarray(newImg)
+        img = pilImg.convert('L')
+                
+        # Detecting Edges on the Image using the argument ImageFilter.FIND_EDGES
+        final = img.filter(ImageFilter.FIND_EDGES)
+        # final = img.filter(ImageFilter.Kernel((3, 3), (-1, -1, -1, -1, 8,
+        #                                   -1, -1, -1, -1), 1, 0))
+        
+        # Saving the Image Under the name Edge_Sample.png
+        fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
+        
+        final.save(fn)
+        
+
+import cv2
+class KMeansSegmentation(Processor):
+    def __init__(self, config_args):
+        super().__init__()
+        self.channel = config_args['channel']
+        self.k = config_args['k']
+        self.outputDir = makeOutputFolder('k-means')
+
+
+    def process(self, image: MyImage):
+        newImg = image.data[self.channel]
+        print(newImg.shape)
+        vectorized_img = newImg.reshape((-1,1))
+        print(vectorized_img.shape)
+        vectorized = np.float32(vectorized_img)
+
+        # Define criteria = ( type, max_iter = 10 , epsilon = 1.0 )
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 0.1)
+        _, label, center = cv2.kmeans(vectorized, self.k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+        center = np.uint8(center)
+        res = center[label.flatten()]
+        res2 = res.reshape((newImg.shape))
+
+        out = Image.fromarray(res2)
+        fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
+        out.save(fn)
+        
+
+class MedianDenoise(Processor):
+    def __init__(self, config_args):
+        super().__init__()
+        self.channel = config_args['channel']
+        self.kernelSize = config_args['kernelSize']
+        self.outputDir = makeOutputFolder('denoise_median')
+
+
+    def denoise(data, kernelSize) -> np.array:
+        return cv2.medianBlur(data, kernelSize)
+        # median2 = cv2.medianBlur(data, 5)
+        # blur2 = cv2.bilateralFilter(data, 5, 3,3 )
+        # compare = np.concatenate((data, median, median2, blur2), axis=1) #side by side comparison
+        # plt.imshow(compare)
+        # plt.show()
+
+
+
+    def process(self, image: MyImage):
+        newImg = image.data[self.channel]
+        out = MedianDenoise.denoise(newImg,self.kernelSize)
+        out = Image.fromarray(out)
+        fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
+        out.save(fn)
+        
+
+        
+class GaussianDenoise(Processor):
+    def __init__(self, config_args):
+        super().__init__()
+        self.channel = config_args['channel']
+        self.kernelSize = config_args['kernelSize']
+        self.outputDir = makeOutputFolder('denoise_median')
+
+
+    def denoise(data, kernelSize) -> np.array:
+        raise Exception("Unimplemented")
+
+
+    def process(self, image: MyImage):
+        newImg = image.data[self.channel]
+        out = GaussianDenoise.denoise(newImg,self.kernelSize)
+        out = Image.fromarray(out)
+        fn = newFilename(image.image_filename, suffix=".png", outdir=self.outputDir)
+        out.save(fn)
+        
+        

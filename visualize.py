@@ -39,6 +39,10 @@ This folder EITHER:
 #     img.show()
 def open(img, **kwargs):
     imgPIL = Image.open(img)
+    a = imgPIL.convert('L')
+    a.save("rgb.png")
+
+    imgPIL.show()
     print("Shape: ", imgPIL.size)
     print("Mode: ", imgPIL.mode)
     rasImg = rasterio.open(img)
@@ -168,18 +172,19 @@ if __name__ == '__main__':
     #     open(args.name, plot=args.plot)        
     # elif args.command == 'grid':
     
-    data = openImageDirectory('results\\LDM_4Channel_v2\\18', 'RGBA')
-    grid = makeSquareImageGrid(data)
+    # data = openImageDirectory('results\\LDM_4Channel_v2\\18', 'RGBA')
+    # grid = makeSquareImageGrid(data)
 
+    open('data\\5426.tif')
 
     #TODO: catch if images are different size. must all be same size
     # data, size = openDirsForComparison('data\\test', 'RGB')
     # grid = makeSimpleGrid(data, size, order='V')
 
 
-    plt.figure(figsize=(data.shape[1]/2, data.shape[2]/2))
-    plt.get_current_fig_manager().window.showMaximized()
-    plt.imshow(grid)
-    plt.tight_layout()
-    plt.show()
+    # plt.figure(figsize=(data.shape[1]/2, data.shape[2]/2))
+    # plt.get_current_fig_manager().window.showMaximized()
+    # plt.imshow(grid)
+    # plt.tight_layout()
+    # plt.show()
 

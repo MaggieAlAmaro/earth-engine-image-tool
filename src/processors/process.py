@@ -1,6 +1,6 @@
 import numpy as np
 from PIL import Image
-# import rasterio
+import rasterio
 from itertools import product
 import os, sys, math
 from abc import ABC, abstractmethod

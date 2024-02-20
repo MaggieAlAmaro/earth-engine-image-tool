@@ -1,0 +1,16 @@
+Value,GROUP,Overview,Landform pattern,Typical landforms in Japan,R,G,B
+1,1a,Bedrock mountain,Steep mountain (rough),steep mountain of accretionary complex / un-decomposed plutonic rock,115,76,0
+2,1b,Bedrock mountain,Steep mountain (smooth),"steep mountain of felsic / dissected mafic volcano, escarpment of caldera / fault-block mountain, inselberg",230,76,0
+3,2a,Bedrock mountain,Moderate mountain (rough),moderate mountain of felsic volcanic rock / accretionary complex,168,112,0
+4,2b,Bedrock mountain,Moderate mountain (smooth),moderate mountain of old sedimentary rock / dissected mafic volcano,205,137,102
+5,3a,Hills,Hills (rough in small and large scale),hills and mountain footslope of weathered rock,168,168,0
+6,3b,Hills,"Hills (smooth in small scale, rough in large scale)","hills of pyroclastic flow deposits / Tertiary sedimentary rock, talus",215,176,158
+7,4,Large highland slope,Upper large slope,un-dissected mafic volcano,255,0,197
+8,5,Large highland slope,Middle large slope,"volcanic footslope of debris, dissected escarpment of sediments",255,190,232
+9,6,"Plateau, terrace, large lowland slope","Dissected terrace, moderate plateau","hilly terrace, metropolitan areas and coastal industrial areas",255,170,0
+10,7,"Plateau, terrace, large lowland slope",Slope in and around terrace or plateau,terrace edge or valley bottom plain in and around terrace,156,156,156
+11,8,"Plateau, terrace, large lowland slope","Terrace, smooth plateau","terrace, sand bar, metropolitan areas and coastal industorial areas",255,211,127
+12,9,"Plateau, terrace, large lowland slope","Alluvial fan, pediment, bajada, pediplain","alluvial fan, dissected alluvial fan",255,255,0
+13,10,Plain,"Alluvial plain, pediplain",alluvial plain in upstream,85,255,0
+14,11,Plain,"Alluvial or coasttal plain, pediplain","alluvial plain, coastal lowland",0,197,255
+15,12,Plain,"Alluvial or coasttal plain (gentlest), lake plain, playa","delta, marsh, coastal lowland",0,112,255

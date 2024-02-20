@@ -1,5 +1,5 @@
 import json, os
-from rgba_processor import mergeRGBA, checkBounds
+from processors.rgba_processor import mergeRGBA, checkBounds
 from utils import newFilename, makeOutputFolder
 import rasterio
 
