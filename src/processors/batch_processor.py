@@ -15,7 +15,10 @@ from process import Processor
 class DatasetSplit(Processor):
     def __init__(self, config_args):
         super().__init__()
-        self.ratio = config_args['valPercent']
+        self.valPercent = config_args['valPercent']
+        self.testPercent = config_args['testPercent']
+        self.trainPercent = config_args['trainPercent']
+        assert (self.valPercent + self.trainPercent + self.testPercent) == 1
         self.shuffle = config_args['shuffle']
         self.outputDir = makeOutputFolder('datasetSplit')
 
@@ -58,6 +61,44 @@ class DatasetSplit(Processor):
         return fn
 
 
+    def splitIntoTrainTestValidationTxt(self, filenameTxt, validationPercent,testPercent):
+        f = open(filenameTxt, "r")
+        lines = f.readlines()
+        f.close()
+        print("Total files:" + str(len(lines)))
+
+        validationSize = int(math.floor(len(lines) * validationPercent))
+        testSize = int(math.floor(len(lines) * testPercent))
+        trainSize = len(lines) - (validationSize + testSize)
+        print("Train Size: " +str(trainSize))
+        print("Test Size: " + str(testSize))
+        print("Validation Size: " + str(validationSize))
+        train = lines[:trainSize]
+        val = lines[trainSize:(trainSize+validationSize)]
+        test = lines[(trainSize+validationSize):]
+                
+
+        name = os.path.splitext(filenameTxt)[0]
+        ftrain = name + '_train.txt'
+        fval = name + '_validation.txt'
+        ftest = name + '_test.txt'
+
+        #train
+        ft = open(ftrain, "w")
+        ft.writelines(train)
+        ft.close()
+
+        #validation
+        fv = open(fval, "w")
+        fv.writelines(val)
+        fv.close()
+
+        
+        #test
+        fv = open(ftest, "w")
+        fv.writelines(test)
+        fv.close()
+
 
     def splitIntoTrainValidationTxt(self, filenameTxt, ratio):
         f = open(filenameTxt, "r")
@@ -87,10 +128,11 @@ class DatasetSplit(Processor):
         fv.close()
 
 
-    def process(self, image: str):
-        fn = self.createFilenameTxt(image)
+    def process(self, batch_path: str):
+        fn = self.createFilenameTxt(batch_path)
         if fn != None:
-            self.splitIntoTrainValidationTxt(fn, self.ratio)
+            # self.splitIntoTrainValidationTxt(fn, self.ratio)
+            self.splitIntoTrainTestValidationTxt(fn, self.valPercent,self.testPercent)
 
 
 class Histogram():
