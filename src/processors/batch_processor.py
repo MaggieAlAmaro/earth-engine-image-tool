@@ -9,7 +9,7 @@ from PIL import Image
 
 # from Image import str
 from src.utils import makeOutputFolder, newFilename
-from process import Processor
+from src.processors.process import Processor
 
 
 class DatasetSplit(Processor):
@@ -133,6 +133,88 @@ class DatasetSplit(Processor):
         if fn != None:
             # self.splitIntoTrainValidationTxt(fn, self.ratio)
             self.splitIntoTrainTestValidationTxt(fn, self.valPercent,self.testPercent)
+
+
+class CaptionThing(Processor):
+    def __init__(self, config_args) -> None:
+        super().__init__()
+        self.outputDir = makeOutputFolder('captions')
+        self.CaptionJson = {}
+
+    def getCaption(filename):
+
+        colorLabel = {
+            "lightBlue" : [0, 255, 255], 
+            "darkBlue" : [0, 0, 153],
+            "blue" : [51, 51, 255],
+            "gray" : [128, 128, 128],
+            "white" : [255, 255, 255],
+            "green" : [0, 255, 0],
+            "yellow" : [255, 255, 0],
+            "orange" : [255, 128, 0],
+            "red" : [255, 0, 0],
+        }
+        colorCountDict = {
+            "lightBlue" : 0,
+            "blue" : 0,
+            "darkBlue" : 0,
+            "gray" : 0,
+            "white" : 0,
+            "green" : 0,
+            "yellow" : 0,
+            "orange" : 0,
+            "red" : 0,
+        }
+        img = Image.open(filename)
+        data = np.array(img)
+        width, height,c  = data.shape
+        totalNbrPixels = height*width
+        colorValues, counts = np.unique(data.reshape(-1, 3), 
+                            return_counts = True, 
+                            axis = 0)
+        colorValues = [list(color) for color in colorValues]
+        colorsNames = [list(colorLabel.keys())[list(colorLabel.values()).index(values)] for values in colorValues]
+        for i in range(len(colorsNames)):
+            colorCountDict[colorsNames[i]] = counts[i]
+
+        skipHills = False
+        caption = ""
+        if colorCountDict['white'] + colorCountDict['green'] /totalNbrPixels >= 0.40:
+            if caption:
+                caption += ", "
+            caption += "plain"
+        if colorCountDict['orange']/totalNbrPixels >= 0.20:
+            if caption:
+                caption += ", "
+            caption += "mountain"
+            if(colorCountDict['orange']/totalNbrPixels >= 0.40):
+                skipHills = True
+        if colorCountDict['yellow'] /totalNbrPixels >= 0.20 and skipHills==False:
+            if caption:
+                caption += ", "
+            caption += "hills"
+        if colorCountDict['lightBlue']/totalNbrPixels >= 0.025:# arbitrary number of pixels
+            if caption:
+                caption += ", "
+            caption += "river"
+        if colorCountDict['blue']/totalNbrPixels >= 0.04:
+            if caption:
+                caption += ", "
+            caption += "lake"
+
+        if caption=="":
+            caption = "random"
+        return str(caption)
+
+    def process(self, batch_path: str):
+        for image in os.listdir(batch_path):
+            f = os.path.join(batch_path, image)
+            resultCaption = CaptionThing.getCaption(f)
+            self.CaptionJson[image] = str(resultCaption)
+        
+
+        with open(os.path.join(self.outputDir, 'mask-caption.json'), 'w') as json_file: 
+            json.dump(self.CaptionJson, json_file) 
 
 
 class Histogram():
